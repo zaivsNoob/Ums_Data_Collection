@@ -1,0 +1,6 @@
+.env
+logs
+modbus_TCP/__pycache__/
+modbus_TCP/*.pyc
+modbus_ZLAN/__pycache__/
+modbus_ZLAN/*.pyc
