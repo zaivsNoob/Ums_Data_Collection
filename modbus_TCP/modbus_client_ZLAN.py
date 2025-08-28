@@ -205,7 +205,7 @@ async def mainZLAN(slave_info):
             # print(slave_info)
 
 
-
+            print(slave_info)
             # Replace the placeholder with the following code
             updated_slave_info = []
             for slave in slave_info:
