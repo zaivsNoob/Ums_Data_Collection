@@ -58,6 +58,7 @@ def convert_int16_to_32_float(registers, byteorder=Endian.Big, wordorder=Endian.
     decoder = BinaryPayloadDecoder.fromRegisters(registers, byteorder=byteorder, wordorder=wordorder)
     return decoder.decode_32bit_float()
 
+
 def convert_int16_to_32_int(registers, byteorder=Endian.Big, wordorder=Endian.Big):
     decoder = BinaryPayloadDecoder.fromRegisters(registers, byteorder=byteorder, wordorder=wordorder)
     return decoder.decode_32bit_int()
@@ -114,7 +115,7 @@ async def readModbusZLAN(client, data_fetch_config, slave_ip):
                             data_entry[f"data_{j + 1}"] = convert_int16_to_32_int(registers[start_index:end_index])
                         else:    
                             # data_entry[f"data_{j + 1}"] = convert_int16_to_32_float(registers[start_index:end_index])
-                            data_entry[f"data_{j + 1}"] = convertRegistersToDataM1M20_2(registers[start_index], registers[end_index], 1)
+                            data_entry[f"data_{j + 1}"] = convert_int16_to_32_float(registers[start_index:end_index])
                     meter_no+=1
                     # print(meter_no)
                     
