@@ -220,7 +220,8 @@ def convert_int16_to_float(registers, byteorder=Endian.Big, wordorder=Endian.Big
     #     raise ValueError("Expected exactly two 16-bit registers.")
 
     decoder = BinaryPayloadDecoder.fromRegisters(registers, byteorder=byteorder, wordorder=wordorder)
-    return decoder.decode_32bit_float()   
+    return decoder.decode_32bit_float()
+    
 #NEED FOR CLIENT_ELECTRICTY
 def convert_int16_to_64float(registers, byteorder=Endian.Big, wordorder=Endian.Big):
     """
@@ -247,7 +248,7 @@ async def readModbusDataPAC3220(client, prev_timestamp=None,slave_ip=None,node_n
 
     try:
         # Call Modbus function with retries
-        response = await retry_on_failure(client.read_holding_registers, retries=3, delay=2, address=1, count=67, slave=156)
+        response = await retry_on_failure(client.read_holding_registers, retries=3, delay=2, address=64, count=2, slave=156)
         response_energy = await retry_on_failure(client.read_holding_registers, retries=3, delay=2, address=801, count=20, slave=156)
         
         if not response.isError() or not response_energy.isError():
