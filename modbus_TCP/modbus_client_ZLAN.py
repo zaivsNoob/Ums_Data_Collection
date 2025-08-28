@@ -54,10 +54,6 @@ def convertRegistersToDataM1M20_2(register1, register2, resolution):
     combined_value = int((hex(register1) + hex(register2)[2:]), 16)
     return round(combined_value * resolution,3)
 
-def convert_int16_to_32_float(registers, byteorder, wordorder):
-
-    decoder = BinaryPayloadDecoder.fromRegisters(registers)
-    return decoder.decode_32bit_float()
 
 
 
@@ -68,6 +64,15 @@ def convert_int16_to_32_int(registers, byteorder, wordorder=Endian.Big):
 def convert_int16_to_64_float(registers, byteorder=Endian.Big, wordorder=Endian.Big):
     decoder = BinaryPayloadDecoder.fromRegisters(registers, byteorder=byteorder, wordorder=wordorder)
     return decoder.decode_64bit_float()
+
+
+
+
+
+def convert_int16_to_32_float(registers, byteorder, wordorder):
+
+    decoder = BinaryPayloadDecoder.fromRegisters(registers, byteorder,wordorder)
+    return decoder.decode_32bit_float()
 
 async def readModbusZLAN(client, data_fetch_config, slave_ip):
 
