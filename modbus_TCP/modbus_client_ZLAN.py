@@ -86,7 +86,7 @@ async def readModbusZLAN(client, data_fetch_config, slave_ip):
 
             if not response.isError():
                 registers = response.registers
-
+                print(registers)
 
                 # for i in range(config["meter_fetched"]):
                 #     data.append({
