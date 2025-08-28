@@ -220,7 +220,8 @@ def convert_int16_to_float(registers, byteorder=Endian.Big, wordorder=Endian.Big
     #     raise ValueError("Expected exactly two 16-bit registers.")
 
     decoder = BinaryPayloadDecoder.fromRegisters(registers, byteorder=byteorder, wordorder=wordorder)
-    return decoder.decode_32bit_float()   
+    return decoder.decode_32bit_float()
+    
 #NEED FOR CLIENT_ELECTRICTY
 def convert_int16_to_64float(registers, byteorder=Endian.Big, wordorder=Endian.Big):
     """
