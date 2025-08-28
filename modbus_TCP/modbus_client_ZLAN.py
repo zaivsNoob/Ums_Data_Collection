@@ -132,7 +132,7 @@ async def readModbusZLAN(client, data_fetch_config, slave_ip):
                         start_index = j * 2 + i * 40
                         end_index = start_index + 2
 
-                        data_entry[f"data_{j + 1}"] = convert_int16_to_32_float(registers[start_index:end_index], Endian.Little, Endian.Little)
+                        data_entry[f"data_{j + 1}"] = convert_int16_to_32_float(registers[start_index:end_index])
                     meter_no+=1
                     # print(meter_no)
                     
