@@ -1,5 +1,6 @@
 # Description: This script reads data from Modbus devices connected to ZLAN 5143 Ethernet Gateway and inserts the data into a Microsoft SQL Server database.    
 import asyncio
+import struct
 from pymodbus.client import AsyncModbusTcpClient
 from datetime import datetime
 
@@ -65,14 +66,30 @@ def convert_int16_to_64_float(registers, byteorder=Endian.Big, wordorder=Endian.
     decoder = BinaryPayloadDecoder.fromRegisters(registers, byteorder=byteorder, wordorder=wordorder)
     return decoder.decode_64bit_float()
 
-
-
-
-
 def convert_int16_to_32_float(registers, byteorder, wordorder):
+    # Combine two 16-bit registers into a 32-bit value
+    if len(registers) < 2:
+        raise ValueError("At least two registers are required for 32-bit float conversion")
+    
+    # Convert 16-bit registers to bytes based on byteorder and wordorder
+    if byteorder == 'little' and wordorder == 'little':
+        byte_data = bytes([((registers[0] >> 8) & 0xFF), (registers[0] & 0xFF),
+                          ((registers[1] >> 8) & 0xFF), (registers[1] & 0xFF)])
+    elif byteorder == 'big' and wordorder == 'big':
+        byte_data = bytes([((registers[0] >> 8) & 0xFF), (registers[0] & 0xFF),
+                          ((registers[1] >> 8) & 0xFF), (registers[1] & 0xFF)])
+    else:
+        raise ValueError("Unsupported byteorder or wordorder combination")
 
-    decoder = BinaryPayloadDecoder.fromRegisters(registers, byteorder,wordorder)
-    return decoder.decode_32bit_float()
+    # Unpack bytes to float
+    return struct.unpack('<f', byte_data)[0]
+
+
+
+# def convert_int16_to_32_float(registers, byteorder, wordorder):
+
+#     decoder = BinaryPayloadDecoder.fromRegisters(registers, byteorder,wordorder)
+#     return decoder.decode_32bit_float()
 
 async def readModbusZLAN(client, data_fetch_config, slave_ip):
 
@@ -118,7 +135,7 @@ async def readModbusZLAN(client, data_fetch_config, slave_ip):
                         start_index = j * 2 + i * 40
                         end_index = start_index + 2
 
-                        data_entry[f"data_{j + 1}"] = convert_int16_to_32_float(registers[start_index:end_index], Endian.Little, Endian.Little)
+                        data_entry[f"data_{j + 1}"] = convert_int16_to_32_float(registers[start_index:end_index], "little", "little")
                     meter_no+=1
                     # print(meter_no)
                     
