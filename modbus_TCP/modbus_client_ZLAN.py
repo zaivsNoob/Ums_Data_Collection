@@ -110,11 +110,8 @@ async def readModbusZLAN(client, data_fetch_config, slave_ip):
                         start_index = j * 2 + i * 40
                         end_index = start_index + 2
                         if j == 1:
-                            if (slave_ip == "192.168.10.201" and meter_no == 9) or (slave_ip == "192.168.10.205" and meter_no == 2):  # 205-> 2, 201->9
-                                # log_message('float condition')
-                                data_entry[f"data_{j + 1}"] = convert_int16_to_32_float(registers[start_index:end_index])
-                            else:
-                                data_entry[f"data_{j + 1}"] = convert_int16_to_32_int(registers[start_index:end_index])
+   
+                            data_entry[f"data_{j + 1}"] = convert_int16_to_32_int(registers[start_index:end_index])
                         else:    
                             data_entry[f"data_{j + 1}"] = convert_int16_to_32_float(registers[start_index:end_index])
                     meter_no+=1
@@ -205,7 +202,7 @@ async def mainZLAN(slave_info):
             # print(slave_info)
 
 
-            print(slave_info)
+
             # Replace the placeholder with the following code
             updated_slave_info = []
             for slave in slave_info:
