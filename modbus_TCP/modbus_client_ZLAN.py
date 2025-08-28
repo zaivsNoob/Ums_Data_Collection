@@ -66,31 +66,24 @@ def convert_int16_to_64_float(registers, byteorder=Endian.Big, wordorder=Endian.
     decoder = BinaryPayloadDecoder.fromRegisters(registers, byteorder=byteorder, wordorder=wordorder)
     return decoder.decode_64bit_float()
 
-# def convert_int16_to_32_float(registers, byteorder, wordorder):
-#     # Combine two 16-bit registers into a 32-bit value
-#     if len(registers) < 2:
-#         raise ValueError("At least two registers are required for 32-bit float conversion")
+def convert_int16_to_32_float(registers, byteorder='little'):
+    # Check if at least two registers are provided
+    if len(registers) < 2:
+        raise ValueError("At least two registers are required for 32-bit float conversion")
     
-#     # Convert 16-bit registers to bytes based on byteorder and wordorder
-#     if byteorder == 'little' and wordorder == 'little':
-#         byte_data = bytes([((registers[0] >> 8) & 0xFF), (registers[0] & 0xFF),
-#                           ((registers[1] >> 8) & 0xFF), (registers[1] & 0xFF)])
-#     elif byteorder == 'big' and wordorder == 'big':
-#         byte_data = bytes([((registers[0] >> 8) & 0xFF), (registers[0] & 0xFF),
-#                           ((registers[1] >> 8) & 0xFF), (registers[1] & 0xFF)])
-#     else:
-#         raise ValueError("Unsupported byteorder or wordorder combination")
-
-#     # Unpack bytes to float
-#     return struct.unpack('<f', byte_data)[0]
+    # Convert 16-bit registers to bytes in little-endian order
+    byte_data = bytes([
+        (registers[0] & 0xFF),          # Low byte of first register
+        ((registers[0] >> 8) & 0xFF),   # High byte of first register
+        (registers[1] & 0xFF),          # Low byte of second register
+        ((registers[1] >> 8) & 0xFF)    # High byte of second register
+    ])
+    
+    # Unpack bytes to float (little-endian)
+    return struct.unpack('<f', byte_data)[0]
 
 
-
-def convert_int16_to_32_float(registers, byteorder, wordorder):
-
-    decoder = BinaryPayloadDecoder.fromRegisters(registers, byteorder,wordorder)
-    return decoder.decode_32bit_float()
-
+# s
 async def readModbusZLAN(client, data_fetch_config, slave_ip):
 
     data = []
@@ -135,7 +128,7 @@ async def readModbusZLAN(client, data_fetch_config, slave_ip):
                         start_index = j * 2 + i * 40
                         end_index = start_index + 2
 
-                        data_entry[f"data_{j + 1}"] = convert_int16_to_32_float(registers[start_index:end_index], Endian.Little, Endian.Little)
+                        data_entry[f"data_{j + 1}"] = convert_int16_to_32_float(registers[start_index:end_index])
                     meter_no+=1
                     # print(meter_no)
                     
