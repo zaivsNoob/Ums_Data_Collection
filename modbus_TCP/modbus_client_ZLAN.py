@@ -56,7 +56,7 @@ def convertRegistersToDataM1M20_2(register1, register2, resolution):
 
 def convert_int16_to_32_float(registers, byteorder, wordorder):
 
-    decoder = BinaryPayloadDecoder.fromRegisters(registers, byteorder=byteorder, wordorder=wordorder)
+    decoder = BinaryPayloadDecoder.fromRegisters(registers,byteorder=Endian.Little,wordorder=Endian.Little)
     return decoder.decode_32bit_float()
 
 
