@@ -134,7 +134,7 @@ async def readModbusZLAN(client, data_fetch_config, slave_ip):
 
                         data_entry[f"data_{j + 1}"] = convert_int16_to_32_float(registers[start_index:end_index])
                         if slave_ip=='192.168.10.202' and meter_no==1 and j==7:
-                            print(f"{slave_ip} {meter_no} ", registers[start_index:end_index])
+                            print(f"{slave_ip} {meter_no} ", registers[start_index:end_index], convert_int16_to_32_float(registers[start_index:end_index]))
                             
                     meter_no+=1
                     # print(meter_no)
