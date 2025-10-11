@@ -96,6 +96,7 @@ def processPAC3120(registers, offset):
         for i in range(2, 20):
             data_entry[f"data_{i}"] = data_entry[f"data_{i + 1}"]
         data_entry['data_20']=0
+        print(data_entry)
         return data_entry 
     except Exception as e:
         log_message(f"Error processing PAC3120 registers: {traceback.format_exc()}")
