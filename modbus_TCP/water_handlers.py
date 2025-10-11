@@ -993,7 +993,7 @@ def busbarDataForWater(cursor, current_timestamp, DATABASE_HOST, DATABASE_NAME, 
 
 def recursionFunction(node, source_type, id_to_node, dataset, connected_with, load_list):
     value=0
-    if dataset[node] is not None:
+    if node in dataset and dataset[node] is not None:
         return dataset[node]
     else:
         if source_type == 'Bus_Bar':

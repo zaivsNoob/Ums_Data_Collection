@@ -59,53 +59,7 @@ try:
         last_date_of_month = datetime.datetime(year, month, last_day)
         return last_date_of_month
 
-    def getYesterdayEnergyAndCost(cursor, energy_store):
-        try:
-            # Fetch all node names from Source_Info
-            cursor.execute("""
-                SELECT node_name 
-                FROM Source_Info
-                WHERE (category IN ('Electricity', 'Grid', 'Solar', 'Diesel_Generator', 'Gas_Generator')) 
-                AND source_type IN ('Source', 'Load', 'Meter_Bus_Bar', 'LB_Meter')
-            """)
-            all_nodes = cursor.fetchall()  # Fetch all node names
-            all_node_names = {row[0] for row in all_nodes}  # Convert to a set for easy lookup
-            
-            # Fetch yesterday's energy and cost data
-            cursor.execute("""
-                SELECT timedate, node, peak_energy, off_peak_energy_1, off_peak_energy_2, generator_energy, yesterday_net_energy, today_energy
-                FROM Energy_Store
-                WHERE timedate = (SELECT MAX(timedate) FROM Energy_Store)
-            """)
-            rows = cursor.fetchall()
-            
-            # Populate the dictionary with actual values from the second query
-            for row in rows:
-                timedate, node, peak_energy, off_peak_energy_1, off_peak_energy_2, generator_energy, yesterday_net_energy, today_energy = row
-                energy_store[node] = {
-                    'last_update':timedate,
-                    'peak_energy': peak_energy,
-                    'off_peak_energy_1': off_peak_energy_1,
-                    'off_peak_energy_2': off_peak_energy_2,
-                    'generator_energy': generator_energy,
-                    'yesterday_net_energy': yesterday_net_energy,
-                    'today_energy':today_energy
-                }
-            
-            # Add remaining nodes with default values if they do not appear in the second query
-            for node_name in all_node_names:
-                if node_name not in energy_store:
-                    energy_store[node_name] = {
-                    'last_update': datetime.datetime.now(),
-                    'peak_energy': 0.0,
-                    'off_peak_energy_1': 0.0,
-                    'off_peak_energy_2': 0.0,
-                    'generator_energy': json.dumps([]),
-                    'yesterday_net_energy': 0.0,
-                    'today_energy':0.0
-                    }
-        except Exception as e:
-            log_message(f"Error fetching yesterday's energy and cost: {traceback.format_exc()}")
+
 
 
     def getZlanSlaveinfo(cursor):
@@ -118,22 +72,6 @@ try:
         except Exception as e:
             log_message(f"Error fetching ZLAN slave information: {traceback.format_exc()}")
             return []
-
-
-
-    # def send_notification(node_name):
-    #     try:
-    #         notification_data = {
-    #             "node_name": node_name,
-    #             "timedate": datetime.datetime.now().isoformat()
-    #         }
-    #         ws.send(json.dumps(notification_data))
-    #         log_message(f"Notification sent for node: {node_name}")
-    #     except Exception as e:
-    #         log_message(f"Error sending notification: {traceback.format_exc()}")
-
-
-
 
 
 
@@ -173,12 +111,11 @@ try:
         if conn:
             cursor = conn.cursor()
             # Call the function to get yesterday's energy and cost
-            getYesterdayEnergyAndCost(cursor, energy_store)
+            electricty_handlers.getYesterdayEnergyAndCost(cursor, energy_store)
             water_handlers.getYesterdayWaterVolume(cursor, water_volume_store)
             steam_handlers.getYesterdaySteamVolume(cursor, steam_volume_store)
             zlan_slave_info = getZlanSlaveinfo(cursor)
-            print("Signal")
-        
+            electricity_zlan_info= electricty_handlers.slaveInfoElectricity(cursor)
         try:
             last_run_minute=datetime.datetime.now().replace(second=0, microsecond=0)
             while True:
@@ -195,15 +132,17 @@ try:
                     current_timestamp = datetime.datetime.now()
                     isupdate= electricty_handlers.checkAnyUpdate(cursor)
                     if isupdate:
-                        getYesterdayEnergyAndCost(cursor, energy_store)
+                        electricty_handlers.getYesterdayEnergyAndCost(cursor, energy_store)
                         water_handlers.getYesterdayWaterVolume(cursor, water_volume_store)
                         steam_handlers.getYesterdaySteamVolume(cursor, steam_volume_store)
-                        zlan_slave_info = getZlanSlaveinfo(cursor) 
+                        zlan_slave_info = getZlanSlaveinfo(cursor)
+                        electricity_zlan_info= electricty_handlers.slaveInfoElectricity(cursor)
+
 
 
                     #call main zlan
 
-                    dataset,dataset_storage=asyncio.run(mainZLAN(zlan_slave_info))
+                    dataset,dataset_storage=asyncio.run(mainZLAN(zlan_slave_info, electricity_zlan_info))
 
 
                     results, category_dict, source_type_dict, machine_max_power_dict=electricty_handlers.fetchDataForElectricityZlan(cursor, dataset)
@@ -216,9 +155,6 @@ try:
                     source_type_dict.update(source_type_dict_tcp)   
                     machine_max_power_dict.update(machine_max_power_dict_tcp)
 
-
-
-                    # print(results)
 
                     # water data mapping
                     water_results= water_handlers.fetchDataForWater(cursor, dataset)
@@ -254,7 +190,6 @@ try:
                         # Process extra data
 
                         electricty_handlers.busbarDataForElectricity(cursor,current_timestamp, DATABASE_HOST, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD, source_data_list)
-                        # electricty_handlers.superBusbarDataForElectricity(cursor,current_timestamp, DATABASE_HOST, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD)
                         electricty_handlers.allSourceData(cursor,current_timestamp, DATABASE_HOST, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD)
                         electricty_handlers.allLoadData(cursor,current_timestamp, DATABASE_HOST, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD)
                         electricty_handlers.monthlyPfTableInsert(cursor)
@@ -269,18 +204,6 @@ try:
                         steam_handlers.busbarDataForSteam(cursor,current_timestamp, DATABASE_HOST, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD, steam_source_data_list)
                         steam_handlers.allSourceData(cursor,current_timestamp, DATABASE_HOST, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD)
                         steam_handlers.allLoadData(cursor,current_timestamp, DATABASE_HOST, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD)
-
-
-
-
-                        # # All Table Monthly Yeary data
-                        # electricty_handlers.electricityMonthlyInsertion(cursor, current_timestamp)
-                        # electricty_handlers.electrticityYearlyInsertion(cursor, current_timestamp)
-                        # water_handlers.waterMonthlyInsertion(cursor, current_timestamp)
-                        # water_handlers.waterYearlyInsertion(cursor, current_timestamp)
-                        # steam_handlers.steamMonthlyInsertion(cursor, current_timestamp)
-                        # steam_handlers.steamYearlyInsertion(cursor, current_timestamp)
-
 
 
                     except Exception as e:

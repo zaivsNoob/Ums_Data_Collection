@@ -966,7 +966,7 @@ try:
 
     def fetchDataForElectricityZlan(cursor, dataset):
         try:
-            column_list= ['Node_Name', 'Net_Energy', 'Voltage1', 'Voltage2', 'Voltage3', 'Current1', 'Current2', 'Current3', 'Power', 'Frequency', 'Reactive_Energy', 'Status']
+            column_list= ['Node_Name', 'Net_Energy_1', 'Net_Energy_2', 'Voltage1', 'Voltage2', 'Voltage3', 'Current1', 'Current2', 'Current3', 'Power', 'Frequency', 'Reactive_Energy', 'Status']
             cursor.execute("SELECT zlan_ip, meter_model, node_name, category, source_type, machine_max_power,meter_no FROM Source_Info WHERE (category IN ('Electricity', 'Grid', 'Solar', 'Diesel_Generator', 'Gas_Generator')) AND source_type IN ('Source', 'Load', 'Meter_Bus_Bar', 'LB_Meter') AND connection_type = 'Zlan'")
             rows = cursor.fetchall()
             results = []
@@ -1002,6 +1002,9 @@ try:
 
                 # Add meter_no and node_name to meter_dict
                 meter_dict[meter_no] = node_name
+                net_energy_1=temp.pop('Net_Energy_1', 0)
+                net_energy_2=temp.pop('Net_Energy_2', 0)
+                temp['Net_Energy']= net_energy_1 - net_energy_2
                 results.append(temp)
             return results, category_dict, source_type_dict, machine_max_power_dict
         except Exception as e:
@@ -1010,7 +1013,7 @@ try:
 
     def fetchDataForElectricityTCP(cursor):
         try:
-            cursor.execute("SELECT ip3, ip4_unit_id, meter_model, node_name, category, source_type, machine_max_power FROM Source_Info WHERE (category NOT IN ('Water', 'Natural_Gas', 'Other_Sensor')) AND source_type IN ('Source', 'Load', 'Meter_Bus_Bar', 'LB_Meter') AND connection_type = 'TCP/IP'")
+            cursor.execute("SELECT ip3, ip4_unit_id, meter_model, node_name, category, source_type, machine_max_power FROM Source_Info WHERE resource_type= 'Electricity' AND source_type IN ('Source', 'Load', 'Meter_Bus_Bar', 'LB_Meter') AND connection_type = 'TCP/IP'")
             rows = cursor.fetchall()
             slave_info = []
 
@@ -1442,6 +1445,22 @@ try:
             else:
                 sleep(20)
         return last_run_minute
+    
+    def slaveInfoElectricity(cursor):
+        try:
+            cursor.execute("SELECT zlan_ip, meter_no, meter_model FROM Source_Info WHERE resource_type= 'Electricity' AND connection_type = 'Zlan'")
+            rows = cursor.fetchall()
+            slave_info_zlan={}
+            for row in rows:
+                zlan_ip, meter_no, meter_model = row
+                if zlan_ip not in slave_info_zlan:
+                    slave_info_zlan[zlan_ip]={}
+                slave_info_zlan[zlan_ip][meter_no]= meter_model
+            return slave_info_zlan
+
+        except Exception as e:
+            log_message(f"Error in slaveInfoElectricity: {traceback.format_exc()}")
+            return []
         
 
 except Exception as e:
