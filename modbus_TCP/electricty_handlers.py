@@ -966,8 +966,8 @@ try:
 
     def fetchDataForElectricityZlan(cursor, dataset):
         try:
-            column_list= ['Node_Name', 'Net_Energy_1', 'Net_Energy_2', 'Voltage1', 'Voltage2', 'Voltage3', 'Current1', 'Current2', 'Current3', 'Power', 'Frequency', 'Reactive_Energy', 'Status']
-            cursor.execute("SELECT zlan_ip, meter_model, node_name, category, source_type, machine_max_power,meter_no FROM Source_Info WHERE (category IN ('Electricity', 'Grid', 'Solar', 'Diesel_Generator', 'Gas_Generator')) AND source_type IN ('Source', 'Load', 'Meter_Bus_Bar', 'LB_Meter') AND connection_type = 'Zlan'")
+            column_list= ['Node_Name', 'Net_Energy', 'Voltage1', 'Voltage2', 'Voltage3', 'Current1', 'Current2', 'Current3', 'Power', 'Frequency', 'Reactive_Energy', 'Status']
+            cursor.execute("SELECT zlan_ip, node_name, category, source_type, machine_max_power,meter_no FROM Source_Info WHERE (category IN ('Electricity', 'Grid', 'Solar', 'Diesel_Generator', 'Gas_Generator')) AND source_type IN ('Source', 'Load', 'Meter_Bus_Bar', 'LB_Meter') AND connection_type = 'Zlan'")
             rows = cursor.fetchall()
             results = []
 
@@ -979,7 +979,7 @@ try:
             meter_dict = {}  # Initialize the dictionary to store meter_no as key and node_name as value
 
             for row in rows:
-                zlan_ip, meter_model, node_name, category, source_type, machine_max_power, meter_no = row
+                zlan_ip, node_name, category, source_type, machine_max_power, meter_no = row
                 temp= {}
                 temp['Node_Name']=node_name
                 if zlan_ip not in dataset or not isinstance(dataset[zlan_ip], list) or meter_no - 1 >= len(dataset[zlan_ip]):
@@ -1002,9 +1002,6 @@ try:
 
                 # Add meter_no and node_name to meter_dict
                 meter_dict[meter_no] = node_name
-                net_energy_1=temp.pop('Net_Energy_1', 0)
-                net_energy_2=temp.pop('Net_Energy_2', 0)
-                temp['Net_Energy']= net_energy_1 - net_energy_2
                 results.append(temp)
             return results, category_dict, source_type_dict, machine_max_power_dict
         except Exception as e:
