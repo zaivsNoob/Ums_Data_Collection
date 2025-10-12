@@ -91,14 +91,14 @@ def processPAC3120(registers, offset):
             start_index = j * 4 + offset * 40
             end_index = start_index + 4
             data_entry[f"data_{j + 1}"] = convert_int16_to_64_float(registers[start_index:end_index])
-        data_entry['data_1']=data_entry['data_1']-data_entry['data_2']
+        data_entry['data_1']=(data_entry['data_1']-data_entry['data_2'])/1000
 
         for i in range(4, 20):
             start_index = i * 2 + offset * 40
             end_index = start_index + 2
             data_entry[f"data_{i - 2}"] = convert_u16_to_32_float(registers[start_index:end_index])            
 
-
+        data_entry['data_8']=data_entry['data_8']/1000
         data_entry['data_18']=0
         data_entry['data_19']=0
         data_entry['data_20']=0
