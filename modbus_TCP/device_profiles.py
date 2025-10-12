@@ -125,4 +125,20 @@ def processMFM384(registers, offset):
         return data_entry
     except Exception as e:
         log_message(f"Error processing MFM-384 registers: {traceback.format_exc()}")
-        return {}    
+        return {}   
+
+
+def processPLC(registers, offset):
+        try:
+            data_entry = {}
+
+            for data_point in range(20):
+                start_index = data_point  * 2 + offset * 40
+                end_index = start_index + 2
+
+                data_entry[f"data_{data_point + 1}"] =convert_u16_to_32_float(registers[start_index:end_index])
+
+            return data_entry
+        except Exception as e:
+            log_message(f"Error processing PAC3120 registers: {traceback.format_exc()}")
+            return {}     
