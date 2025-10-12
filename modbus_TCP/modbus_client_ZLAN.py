@@ -119,6 +119,7 @@ async def readModbusZLAN(client, data_fetch_config, slave_ip, electricity_zlan_i
                         continue
                     processor=model_processors.get(meter_model, None)
                     if processor:
+                        log_message(f"Processing {slave_ip} meter {meter_no} of model {meter_model}")
                         data_entry = processor(registers, offset)
                         data.append(data_entry)
                     else:
