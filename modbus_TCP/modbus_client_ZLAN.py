@@ -10,6 +10,7 @@ import os
 from pymodbus.payload import BinaryPayloadDecoder
 from pymodbus.constants import Endian
 from device_profiles import processMFM384, processPAC3120, processPLC
+import traceback
 
 load_dotenv()
 
@@ -135,7 +136,7 @@ async def readModbusZLAN(client, data_fetch_config, slave_ip, electricity_zlan_i
         log_message(f"Failed to retrieve data from {client.host} after retries.")
 
     except Exception as e:
-        log_message(f"Unexpected failure: {e}")
+        log_message(f"Unexpected failure: {traceback.format_exc()}")
 
 
     return data
