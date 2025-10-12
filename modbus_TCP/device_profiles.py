@@ -102,7 +102,6 @@ def processPAC3120(registers, offset):
         data_entry['data_18']=0
         data_entry['data_19']=0
         data_entry['data_20']=0
-        log_message(data_entry)
         return data_entry 
     except Exception as e:
         log_message(f"Error processing PAC3120 registers: {traceback.format_exc()}")
@@ -115,8 +114,14 @@ def processMFM384(registers, offset):
         for j in range(20):
             start_index = j * 2 + offset * 40
             end_index = start_index + 2
-
             data_entry[f"data_{j + 1}"] = convert_u16_to_32_float(registers[start_index:end_index])
+        data_entry['data_1']=data_entry['data_1']-data_entry['data_2']
+
+        for i in range (2, 20):
+            data_entry[f'data_{i}']=data_entry[f'data_{i+1}']
+        data_entry['data_20']=0
+
+
         return data_entry
     except Exception as e:
         log_message(f"Error processing MFM-384 registers: {traceback.format_exc()}")
