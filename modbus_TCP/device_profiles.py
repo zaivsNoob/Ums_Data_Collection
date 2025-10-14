@@ -141,4 +141,21 @@ def processPLC(registers, offset):
             return data_entry
         except Exception as e:
             log_message(f"Error processing PAC3120 registers: {traceback.format_exc()}")
+            return {}
+             
+def processaq_hum_temp(registers, offset):
+        try:
+            data_entry = {}
+
+            for data_point in range(20):
+                start_index = data_point + offset * 40
+                end_index = start_index + 1
+
+                data_entry[f"data_{data_point + 1}"] =registers[start_index:end_index]
+                log_message(data_entry)
+                # data_entry[f"data_{data_point + 1}"] =convert_u16_to_32_float(registers[start_index:end_index])
+
+            return data_entry
+        except Exception as e:
+            log_message(f"Error processing PAC3120 registers: {traceback.format_exc()}")
             return {}     

@@ -115,7 +115,7 @@ try:
             water_handlers.getYesterdayWaterVolume(cursor, water_volume_store)
             steam_handlers.getYesterdaySteamVolume(cursor, steam_volume_store)
             zlan_slave_info = getZlanSlaveinfo(cursor)
-            electricity_zlan_info= electricty_handlers.slaveInfoElectricity(cursor)
+            slave_ip_model= electricty_handlers.slaveIpAndModelMap(cursor)
         try:
             last_run_minute=datetime.datetime.now().replace(second=0, microsecond=0)
             while True:
@@ -136,14 +136,13 @@ try:
                         water_handlers.getYesterdayWaterVolume(cursor, water_volume_store)
                         steam_handlers.getYesterdaySteamVolume(cursor, steam_volume_store)
                         zlan_slave_info = getZlanSlaveinfo(cursor)
-                        electricity_zlan_info= electricty_handlers.slaveInfoElectricity(cursor)
+                        slave_ip_model= electricty_handlers.slaveIpAndModelMap(cursor)
 
 
 
                     #call main zlan
 
-                    dataset,dataset_storage=asyncio.run(mainZLAN(zlan_slave_info, electricity_zlan_info))
-
+                    dataset,dataset_storage=asyncio.run(mainZLAN(zlan_slave_info, slave_ip_model))
 
                     results, category_dict, source_type_dict, machine_max_power_dict=electricty_handlers.fetchDataForElectricityZlan(cursor, dataset)
                     slave_info, category_dict_tcp, source_type_dict_tcp, machine_max_power_dict_tcp=electricty_handlers.fetchDataForElectricityTCP(cursor)

@@ -1086,37 +1086,7 @@ try:
         except Exception as e:
             log_message(f"Unexpected error during bulk insert: {traceback.format_exc()}")
 
-    # def electrticityMonthlyInsertion(cursor, current_timestamp):
-    #     try:
-    #         current_date = current_timestamp.date()
-    #         sources = monthly_yearly_utils.get_source_info(cursor)
-    #         # Add virtual/extra sources
-    #         additional_nodes = ['Solar', 'Grid', 'Diesel_Generator', 'Gas_Generator', 'Total_Source', 'Total_Load']
-
-    #         # Merge actual and additional nodes into one list
-    #         all_nodes = sources + additional_nodes
-
-    #         for node in all_nodes:
-    #             result = monthly_yearly_utils.get_energy_and_cost_monthly(cursor, node, current_date)
-
-    #             if not result:
-    #                 continue  # Skip if no data
-
-    #             energy_result, cost, energy_mod, cost_mod = result
-    #             record_count = monthly_yearly_utils.check_existing_record(cursor, current_date, node)
-    #             runtime = monthly_yearly_utils.get_runtime_monthly(cursor, node, current_date)
-
-    #             if record_count > 0:
-    #                 monthly_yearly_utils.update_record_monthly(
-    #                     cursor, energy_result, cost, runtime, energy_mod, cost_mod, current_date, node
-    #                 )
-    #             else:
-    #                 monthly_yearly_utils.insert_record_monthly(
-    #                     cursor, energy_result, cost, runtime, energy_mod, cost_mod, current_date, node
-    #                 )
-
-    #     except Exception as e:
-    #         log_message("Error in electrticityMonthlyInsertion:", {traceback.format_exc()})
+ 
 
 
     def electricityMonthlyInsertion(cursor, current_timestamp):
@@ -1443,9 +1413,24 @@ try:
                 sleep(20)
         return last_run_minute
     
-    def slaveInfoElectricity(cursor):
+    # def slaveInfoElectricity(cursor):
+    #     try:
+    #         cursor.execute("SELECT zlan_ip, meter_no, meter_model FROM Source_Info WHERE resource_type= 'Electricity' AND connection_type = 'Zlan'")
+    #         rows = cursor.fetchall()
+    #         slave_info_zlan={}
+    #         for row in rows:
+    #             zlan_ip, meter_no, meter_model = row
+    #             if zlan_ip not in slave_info_zlan:
+    #                 slave_info_zlan[zlan_ip]={}
+    #             slave_info_zlan[zlan_ip][meter_no]= meter_model
+    #         return slave_info_zlan
+
+    #     except Exception as e:
+    #         log_message(f"Error in slaveInfoElectricity: {traceback.format_exc()}")
+    #         return []
+    def slaveIpAndModelMap(cursor):
         try:
-            cursor.execute("SELECT zlan_ip, meter_no, meter_model FROM Source_Info WHERE resource_type= 'Electricity' AND connection_type = 'Zlan'")
+            cursor.execute("SELECT zlan_ip, meter_no, meter_model FROM Source_Info WHERE connection_type = 'Zlan'")
             rows = cursor.fetchall()
             slave_info_zlan={}
             for row in rows:

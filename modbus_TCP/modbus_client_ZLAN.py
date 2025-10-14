@@ -9,7 +9,7 @@ import os
 
 from pymodbus.payload import BinaryPayloadDecoder
 from pymodbus.constants import Endian
-from device_profiles import processMFM384, processPAC3120, processPLC
+from device_profiles import processMFM384, processPAC3120, processPLC, processaq_hum_temp
 import traceback
 
 load_dotenv()
@@ -89,16 +89,18 @@ def convert_int16_to_32_float(registers, byteorder='little'):
 #     decoder = BinaryPayloadDecoder.fromRegisters(registers, byteorder=byteorder, wordorder=wordorder)
 #     return decoder.decode_32bit_float()
 
-async def readModbusZLAN(client, data_fetch_config, slave_ip, electricity_zlan_info):
+async def readModbusZLAN(client, data_fetch_config, slave_ip, slave_ip_model):
 
     data = []
     try:
+        log_message(slave_ip_model)
         model_processors={
             '7KT0310':processMFM384,
             'PAC3120':processPAC3120,
             'MFM-384':processMFM384,
             'PLC':processPLC,
             'Flow Meter':processMFM384,
+            'aq_hum_temp':processaq_hum_temp,
         }
 
 
@@ -113,7 +115,7 @@ async def readModbusZLAN(client, data_fetch_config, slave_ip, electricity_zlan_i
 
                 
                 for offset in range(config["meter_fetched"]):
-                    meter_model=electricity_zlan_info.get(slave_ip, {}).get(meter_no, None)
+                    meter_model=slave_ip_model.get(slave_ip, {}).get(meter_no, None)
                     if not meter_model:
                         data.append({})
                         meter_no+=1
@@ -125,9 +127,9 @@ async def readModbusZLAN(client, data_fetch_config, slave_ip, electricity_zlan_i
                     else:
                         log_message(f"No processor defined for meter model: {meter_model}")
                     meter_no+=1
-        log_message(data)
                     
-
+            else:
+                log_message(f"Error in the function readModbusZlan {slave_ip}, {meter_no} from {client}: {response}")
        
 
     except asyncio.TimeoutError:
@@ -200,7 +202,7 @@ def generate_slave_config(slave):
                 return slave_data_fetch_config
 
 # Main loop
-async def mainZLAN(slave_info, electricity_zlan_info):
+async def mainZLAN(slave_info, slave_ip_model):
     try:
             # print(slave_info)
 
@@ -230,7 +232,7 @@ async def mainZLAN(slave_info, electricity_zlan_info):
                     if client:
                         
 
-                        data  = await readModbusZLAN(client, item['addresses'], item['slave_ip'], electricity_zlan_info)
+                        data  = await readModbusZLAN(client, item['addresses'], item['slave_ip'], slave_ip_model)
                         # storage_data=await readModbusZLANStorage(client, item['addresses_storage'])
 
                         result[item['slave_ip']]=(data)

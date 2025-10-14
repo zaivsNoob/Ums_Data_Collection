@@ -9,7 +9,7 @@ import calendar
 def fetchDataForSensor(cursor, dataset):
     try:
         column_list= ['Node_Name', 'temperature', 'humidity', 'co2']
-        cursor.execute("SELECT node_name, zlan_ip, meter_no FROM Source_Info WHERE (category = 'Other_Sensor')")
+        cursor.execute("SELECT node_name, zlan_ip, meter_no FROM Source_Info WHERE (resource_type = 'Sensor')")
         rows = cursor.fetchall()
         results = []
 
@@ -88,6 +88,22 @@ def bulkInsertForSensor(cursor, sensor_data_list, sensor_dgr_data_list, DATABASE
         sensor_dgr_data_list.clear()  # Clear the list after insertion                                               
     except Exception as e:
         log_message(f"Unexpected error during bulk insert: {traceback.format_exc()}")
+
+def slaveInfoSensor(cursor):
+    try:
+        cursor.execute("SELECT zlan_ip, meter_no, meter_model FROM Source_Info WHERE resource_type= 'Sensor' AND connection_type = 'Zlan'")
+        rows = cursor.fetchall()
+        slave_info_zlan={}
+        for row in rows:
+            zlan_ip, meter_no, meter_model = row
+            if zlan_ip not in slave_info_zlan:
+                slave_info_zlan[zlan_ip]={}
+            slave_info_zlan[zlan_ip][meter_no]= meter_model
+        return slave_info_zlan
+
+    except Exception as e:
+        log_message(f"Error in slaveInfoSensor: {traceback.format_exc()}")
+        return []
 
 
 if __name__ == "__main__":
