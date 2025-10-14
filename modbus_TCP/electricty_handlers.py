@@ -369,7 +369,7 @@ try:
             cursor.execute("""
                 SELECT node_name 
                 FROM Source_Info
-                WHERE (category IN ('Electricity', 'Grid', 'Solar', 'Diesel_Generator', 'Gas_Generator')) 
+                WHERE resource_type = 'Electricity'
                 AND source_type IN ('Source', 'Load', 'Meter_Bus_Bar', 'LB_Meter')
             """)
             all_nodes = cursor.fetchall()  # Fetch all node names
