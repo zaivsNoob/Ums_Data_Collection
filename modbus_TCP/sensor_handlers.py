@@ -43,17 +43,6 @@ def readNode(current_timestamp, temp, node_name, sensor_data_list, sensor_dgr_da
 
         sensor_dgr_data_list.append((current_timestamp, temp['Node_Name'], temp['temperature'], temp['humidity'], temp['co2']))
 
-        if (current_timestamp.hour == 23 and current_timestamp.minute == 59) or (current_timestamp.hour == 0 and current_timestamp.minute <= 5):
-            pass
-            # last_update_time = energy_store[node_name].get('last_update')
-
-            # If last_update doesn't exist or last update was NOT from previous day's 23:59
-            # if (current_timestamp.hour == 23 and current_timestamp.minute == 59) or (last_update_time.hour == 23 and last_update_time.minute == 0) or (last_update_time.hour != 23 and last_update_time.minute != 59):
-            #     log_message(f'Midnight reset at: {current_timestamp}')
-                # Perform the reset operations
-
-
-
     except Exception as e:
         log_message(f"Error reading node for {node_name}: {traceback.format_exc()}")
 

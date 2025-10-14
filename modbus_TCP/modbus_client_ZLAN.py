@@ -93,7 +93,6 @@ async def readModbusZLAN(client, data_fetch_config, slave_ip, slave_ip_model):
 
     data = []
     try:
-        log_message(slave_ip_model)
         model_processors={
             '7KT0310':processMFM384,
             'PAC3120':processPAC3120,
