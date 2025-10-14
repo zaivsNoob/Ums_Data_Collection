@@ -135,7 +135,7 @@ async def readModbusZLAN(client, data_fetch_config, slave_ip, slave_ip_model):
         log_message(f"Failed to retrieve data from {client.host} after retries.")
 
     except Exception as e:
-        log_message(f"Unexpected failure: {traceback.format_exc()}")
+        log_message(f"Connection failure: {e}")
 
 
     return data
