@@ -154,6 +154,7 @@ def processaq_hum_temp(registers, offset):
                 data_entry[f"data_{data_point + 1}"] =convert_u16_to_int16(registers[start_index:end_index])
             data_entry['data_1']=data_entry['data_1']/10
             data_entry['data_2']=data_entry['data_2']/10
+            data_entry['data_3']=data_entry['data_3'] if data_entry['data_3']>=0 else 0
                 # data_entry[f"data_{data_point + 1}"] =convert_u16_to_32_float(registers[start_index:end_index])
 
             return data_entry
