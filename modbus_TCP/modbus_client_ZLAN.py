@@ -41,7 +41,7 @@ async def retry_on_failure(func, retries=5, delay=2, *args, **kwargs):
                 log_message("Maximum retries reached. Giving up.")
                 raise
         except Exception as e:
-            log_message(f"Unexpected error: {e}. Retry {attempt} of {retries}...")
+            # log_message(f"Unexpected error: {e}. Retry {attempt} of {retries}...")
             if attempt < retries:
                 await asyncio.sleep(delay)
             else:
