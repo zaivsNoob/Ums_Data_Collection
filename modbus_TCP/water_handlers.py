@@ -152,8 +152,11 @@ def getYesterdayWaterVolume(cursor, water_volume_store):
                 'last_update': datetime.datetime.now(),
                 'yesterday_volume' : 0.0,
                 }
+    except pyodbc.Error as e:
+        log_message(f"Database error fetching yesterday's water volume: {traceback.format_exc()} {e}")
+        raise
     except Exception as e:
-        log_message(f"Error fetching yesterday's water volume: {traceback.format_exc()}")
+        log_message(f"Error fetching yesterday's water volume: {traceback.format_exc()} {e}")
 
 def manualDenimData(cursor, water_volume_store, meter_data):
     try:
@@ -383,7 +386,7 @@ def processReadNodeForWater(cursor, current_timestamp, results, water_source_dat
 
 
 
-def bulkInsertForWater(cursor, water_source_data_list, water_dgr_data_list, water_dgr_data_15_list, DATABASE_HOST, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD):
+def bulkInsertForWater(cursor, water_source_data_list, water_dgr_data_list, water_dgr_data_15_list):
     try:
         
         if water_source_data_list:
@@ -407,16 +410,19 @@ def bulkInsertForWater(cursor, water_source_data_list, water_dgr_data_list, wate
             ''', water_dgr_data_15_list)
             water_dgr_data_15_list.clear()  # Clear the list after insertion
 
-    except pyodbc.Error as e:
-        log_message(f"Database error during water bulk insert: {traceback.format_exc()} {water_source_data_list}")
-        conn = connect_to_database(DATABASE_HOST, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD)  # Attempt to reconnect
-        cursor = conn.cursor() if conn else None
 
+    except pyodbc.Error as e:
+        log_message(f"Unexpected error during water bulk insert: {traceback.format_exc()} {e}")
         water_source_data_list.clear()  # Clear the list after insertion
         water_dgr_data_list.clear()  # Clear the list after insertion    
-        water_dgr_data_15_list.clear()  # Clear the list after insertion                                            
+        water_dgr_data_15_list.clear()  # Clear the list after insertion 
+        raise
+    
     except Exception as e:
-        log_message(f"Unexpected error during bulk insert: {traceback.format_exc()}")
+        log_message(f"Unexpected error during water bulk insert: {traceback.format_exc()} {e}")
+        water_source_data_list.clear()  # Clear the list after insertion
+        water_dgr_data_list.clear()  # Clear the list after insertion    
+        water_dgr_data_15_list.clear()  # Clear the list after insertion 
 
 
 def waterMonthlyInsertion(cursor, current_timestamp):
@@ -538,33 +544,10 @@ def waterYearlyInsertion(cursor, current_timestamp):
         log_message(f"Error during yearly insertion for water: {traceback.format_exc()}")
 
 
-# def waterYearlyInsertion(cursor, current_timestamp):
-#     try:
-#         current_date = current_timestamp.date()
-#         current_month_number = current_date.month
-#         last_day_of_current_month = datetime.date(current_date.year, current_date.month, 
-#                                                 calendar.monthrange(current_date.year, current_date.month)[1])
-#         last_entry_month = monthly_yearly_utils.get_last_entry_month_water(cursor)
-#         water_array = monthly_yearly_utils.get_water_array(cursor, last_entry_month)
-#         # Add virtual/extra sources
-#         sources = monthly_yearly_utils.get_water_info(cursor)
-#         additional_nodes = ['Total_Source', 'Sub_Mersible', 'WTP', 'Total_Load']
-
-#         # Merge actual and additional nodes into one list
-#         all_nodes = sources + additional_nodes
-
-#         for source in all_nodes:
-#             sensor_value, sensor_cost, runtime, volume = monthly_yearly_utils.get_yearly_water_data(cursor, source, current_month_number)
-#             monthly_yearly_utils.update_or_insert_water_record(cursor, source, sensor_value, sensor_cost, runtime, volume, last_day_of_current_month, 
-#                                                     last_entry_month, current_month_number, water_array)
-#     except Exception as e:
-#         log_message(f"Error during yearly insertion for water: {traceback.format_exc()}")
 
 
 
-
-
-def allLoadData(cursor, current_timestamp, DATABASE_HOST, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD):
+def allLoadData(cursor, current_timestamp):
     try:
         # Fetch load nodes of type Water
         cursor.execute("""
@@ -638,8 +621,7 @@ def allLoadData(cursor, current_timestamp, DATABASE_HOST, DATABASE_NAME, DATABAS
 
     except pyodbc.Error:
         log_message(f"Error Processing Water Total Load Data: {traceback.format_exc()}")
-        conn = connect_to_database(DATABASE_HOST, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD)
-        cursor = conn.cursor() if conn else None
+        raise
     except Exception:
         log_message(f"Unexpected error inserting Water Total Load data: {traceback.format_exc()}")
 
@@ -648,7 +630,7 @@ def allLoadData(cursor, current_timestamp, DATABASE_HOST, DATABASE_NAME, DATABAS
 
 
 
-def allSourceData(cursor, current_timestamp, DATABASE_HOST, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD):
+def allSourceData(cursor, current_timestamp):
     try:
         # Step 1: Get relevant source nodes
         cursor.execute("""
@@ -736,8 +718,7 @@ def allSourceData(cursor, current_timestamp, DATABASE_HOST, DATABASE_NAME, DATAB
 
     except pyodbc.Error:
         log_message(f"Error Processing Water Total Source Data: {traceback.format_exc()}")
-        conn = connect_to_database(DATABASE_HOST, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD)
-        cursor = conn.cursor() if conn else None
+        raise
     except Exception:
         log_message(f"Unexpected error inserting Water Total Source data: {traceback.format_exc()}")
 
@@ -909,7 +890,7 @@ def allSourceData(cursor, current_timestamp, DATABASE_HOST, DATABASE_NAME, DATAB
 #         log_message(f"Critical error in busbarData (Water): {traceback.format_exc()}")
 
 busbars = {}
-def busbarDataForWater(cursor, current_timestamp, DATABASE_HOST, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD, water_data_list):
+def busbarDataForWater(cursor, current_timestamp, water_data_list):
     try:
         busbar_data_list = []
         
@@ -960,32 +941,28 @@ def busbarDataForWater(cursor, current_timestamp, DATABASE_HOST, DATABASE_NAME, 
         busbars.clear()
         water_data_list.clear()
 
-        try:
-            # pf = monthlyPfcalculation(cursor, current_timestamp, node_name, aggregates['net_energy'], aggregates['reactive_energy'], aggregates['power'])
-            if busbar_data_list:
-                cursor.executemany("""
-                    INSERT INTO Water (timedate, node, sensor_value)
-                    VALUES (?, ?, ?)
-                """, busbar_data_list)
+        # pf = monthlyPfcalculation(cursor, current_timestamp, node_name, aggregates['net_energy'], aggregates['reactive_energy'], aggregates['power'])
+        if busbar_data_list:
+            cursor.executemany("""
+                INSERT INTO Water (timedate, node, sensor_value)
+                VALUES (?, ?, ?)
+            """, busbar_data_list)
 
-            # cursor.execute("""
-            #     INSERT INTO DGR_Data (timedate, node, power, cost, type, category)
-            #     VALUES (?, ?, ?, ?, ?, 'Electricity')
-            # """, (current_timestamp, node_name, aggregates['power'], aggregates['cost'], source_type))
+        # cursor.execute("""
+        #     INSERT INTO DGR_Data (timedate, node, power, cost, type, category)
+        #     VALUES (?, ?, ?, ?, ?, 'Electricity')
+        # """, (current_timestamp, node_name, aggregates['power'], aggregates['cost'], source_type))
 
-            # if current_timestamp.minute % 15 == 0:
-            #     cursor.execute("""
-            #         INSERT INTO DGR_Data_15 (timedate, node, power, cost, type, category)
-            #         VALUES (?, ?, ?, ?, ?, 'Electricity')
-            #     """, (current_timestamp, node_name, aggregates['power'], aggregates['cost'], source_type))
+        # if current_timestamp.minute % 15 == 0:
+        #     cursor.execute("""
+        #         INSERT INTO DGR_Data_15 (timedate, node, power, cost, type, category)
+        #         VALUES (?, ?, ?, ?, ?, 'Electricity')
+        #     """, (current_timestamp, node_name, aggregates['power'], aggregates['cost'], source_type))
 
-        except pyodbc.Error:
-            log_message(f"DB error inserting data for water busbar data: {traceback.format_exc()}")
-            conn = connect_to_database(DATABASE_HOST, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD)
-            cursor = conn.cursor() if conn else None
-        except Exception:
-            log_message(f"Unexpected error inserting data: {traceback.format_exc()}")
 
+    except pyodbc.Error:
+        log_message(f"Critical error in busbarDataForWater: {traceback.format_exc()}")
+        raise
     except Exception:
         log_message(f"Critical error in busbarDataForWater: {traceback.format_exc()}")
 

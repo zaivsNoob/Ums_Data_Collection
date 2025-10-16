@@ -4,13 +4,13 @@
 ## [Unreleased]
 
 ### Added
-- Sensor Configuration
+- Dynamic generator status calculation
 
-<!-- ### Changed
-- For the PAC3120 model power and energy calculation  updated -->
+### Changed
+- Done multiple code cleaining
 
-<!-- ### Fixed
-- Bug fixes here -->
+### Fixed
+- Multiple unhandled database connection creation
 
 ---
 ## [1.1.0] - 2025-10-14

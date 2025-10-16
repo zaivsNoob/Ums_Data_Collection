@@ -42,6 +42,7 @@ try:
         except Exception as e:
             log_message(f"Database connection error: {traceback.format_exc()}")
             return None
+        
     def connect_websocket(ws, websocket_url):
         """Function to connect/reconnect WebSocket."""
         try:
@@ -155,10 +156,9 @@ try:
 
 
     busbars = {}
-    def busbarDataForElectricity(cursor, current_timestamp, DATABASE_HOST, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD, source_data_list):
+    def busbarDataForElectricity(cursor, current_timestamp, source_data_list):
         try:
             busbar_data_list = []
-            # log_message(source_data_list)
             global busbars
             # Step 1: Fetch all Bus_Bar and Load_Bus_Bar nodes
             cursor.execute("""
@@ -167,14 +167,9 @@ try:
                 WHERE Source_type IN ('Bus_Bar','Load_Bus_Bar')
                 AND resource_type = 'Electricity'
             """)
-            # busbars = [row for row in cursor.fetchall() if row[1] not in ['Others 1', 'Others 2', 'Others 3', 'Others 4']]
-            # busbars = {}
             dataset = {item[1]: item[2] for item in source_data_list}
             for row in cursor.fetchall():
                 id, node_name, source_type, connected_with, lines_json = row
-
-                if node_name in ['Others 1', 'Others 2', 'Others 3', 'Others 4']:
-                    continue
 
                 try:
                     lines = json.loads(lines_json)
@@ -191,7 +186,6 @@ try:
                 }
                 dataset[node_name] = None
 
-            # print(dataset)
 
             # Step 2: Map source_info.id to (node_name, source_type)
             cursor.execute("SELECT id, node_name FROM Source_Info WHERE resource_type = 'Electricity'")
@@ -209,32 +203,27 @@ try:
             busbars.clear()
             source_data_list.clear()
 
-            try:
-                # pf = monthlyPfcalculation(cursor, current_timestamp, node_name, aggregates['net_energy'], aggregates['reactive_energy'], aggregates['power'])
-                if busbar_data_list:
-                    cursor.executemany("""
-                        INSERT INTO Source_Data (timedate, node, power, power_mod)
-                        VALUES (?, ?, ?, ?)
-                    """, busbar_data_list)
+            # pf = monthlyPfcalculation(cursor, current_timestamp, node_name, aggregates['net_energy'], aggregates['reactive_energy'], aggregates['power'])
+            if busbar_data_list:
+                cursor.executemany("""
+                    INSERT INTO Source_Data (timedate, node, power, power_mod)
+                    VALUES (?, ?, ?, ?)
+                """, busbar_data_list)
 
-                # cursor.execute("""
-                #     INSERT INTO DGR_Data (timedate, node, power, cost, type, category)
-                #     VALUES (?, ?, ?, ?, ?, 'Electricity')
-                # """, (current_timestamp, node_name, aggregates['power'], aggregates['cost'], source_type))
+            # cursor.execute("""
+            #     INSERT INTO DGR_Data (timedate, node, power, cost, type, category)
+            #     VALUES (?, ?, ?, ?, ?, 'Electricity')
+            # """, (current_timestamp, node_name, aggregates['power'], aggregates['cost'], source_type))
 
-                # if current_timestamp.minute % 15 == 0:
-                #     cursor.execute("""
-                #         INSERT INTO DGR_Data_15 (timedate, node, power, cost, type, category)
-                #         VALUES (?, ?, ?, ?, ?, 'Electricity')
-                #     """, (current_timestamp, node_name, aggregates['power'], aggregates['cost'], source_type))
-
-            except pyodbc.Error:
-                log_message(f"DB error inserting data for electric busbar data: {traceback.format_exc()}")
-                conn = connect_to_database(DATABASE_HOST, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD)
-                cursor = conn.cursor() if conn else None
-            except Exception:
-                log_message(f"Unexpected error inserting data: {traceback.format_exc()}")
-
+            # if current_timestamp.minute % 15 == 0:
+            #     cursor.execute("""
+            #         INSERT INTO DGR_Data_15 (timedate, node, power, cost, type, category)
+            #         VALUES (?, ?, ?, ?, ?, 'Electricity')
+            #     """, (current_timestamp, node_name, aggregates['power'], aggregates['cost'], source_type))
+        
+        except pyodbc.Error:
+            log_message(f"Critical error in busbarDataForElectricity: {traceback.format_exc()}")
+            raise
         except Exception:
             log_message(f"Critical error in busbarDataForElectricity: {traceback.format_exc()}")
 
@@ -272,7 +261,7 @@ try:
         return value
 
 
-    def allSourceData(cursor, current_timestamp, DATABASE_HOST, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD):
+    def allSourceData(cursor, current_timestamp):
         try:
             cursor.execute("""
                 SELECT node_name, category
@@ -357,10 +346,9 @@ try:
 
         except pyodbc.Error:
             log_message(f"Error Processing Total Source Data: {traceback.format_exc()}")
-            conn = connect_to_database(DATABASE_HOST, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD)
-            cursor = conn.cursor() if conn else None
+            raise
         except Exception:
-            log_message(f"Unexpected error inserting Total Source data: {traceback.format_exc()}")
+            log_message(f"Error Processing Total Source Data: {traceback.format_exc()}")
 
 
     def getYesterdayEnergyAndCost(cursor, energy_store):
@@ -408,6 +396,9 @@ try:
                     'yesterday_net_energy': 0.0,
                     'today_energy':0.0
                     }
+        except pyodbc.Error as e:
+            log_message(f"Database error fetching yesterday's energy and cost: {traceback.format_exc()} {e}")
+            raise
         except Exception as e:
             log_message(f"Error fetching yesterday's energy and cost: {traceback.format_exc()}")
 
@@ -853,18 +844,10 @@ try:
             raise
 
 
-    def readNode(cursor,current_timestamp,temp,node_name,category,source_type, machine_max_power, energy_store, previous_status, max_limit_count, source_data_list, dgr_data_list, dgr_data_15_list):
+    def readNode(cursor,current_timestamp, temp, node_name, category, source_type, machine_max_power, energy_store, max_limit_count, source_data_list, dgr_data_list, dgr_data_15_list):
 
         try:
-                global generator_is_running, not_conn_elec
-
-
-                if node_name== 'DG 01':
-                    if temp["Power"]>0:
-
-                        generator_is_running=True
-                    else:
-                        generator_is_running=False
+                global not_conn_elec
   
                 #will be optimize later
                 # for notification
@@ -875,27 +858,9 @@ try:
                 else:
                     not_conn_elec.pop(node_name, None)
 
-                current_status = temp['Status']
                 monthly_pf= monthlyPfcalculation(cursor, current_timestamp, node_name, temp["Net_Energy"], temp['Reactive_Energy'],temp['Power'])
                 
-
-
-                # if node_name in previous_status:
-                # #     # Check if previous status was True and current status is False
-                #     if previous_status[node_name] == True and current_status == False:
-                #             # Status changed from True to False, insert into Notification table
-                #             cursor.execute('''
-                #                 INSERT INTO home_notification (timedate, node_name)
-                #                 VALUES (?, ?)
-                #             ''', (current_timestamp, node_name))
-                #             # conn.commit()
-                #             ws.connect(websocket_url, header=[f"Authorization: Bearer {token}"])
-                #             send_notification(node_name)
-                #             print(f"Notification sent: Node {node_name} is OFF")
-                #             ws.close()
-                            
-                previous_status[node_name] = current_status
-
+        
                 if energy_store.get(node_name):
                     yesterday_energy = energy_store[node_name]['yesterday_net_energy']
                 else:
@@ -967,7 +932,7 @@ try:
     def fetchDataForElectricityZlan(cursor, dataset):
         try:
             column_list= ['Node_Name', 'Net_Energy', 'Voltage1', 'Voltage2', 'Voltage3', 'Current1', 'Current2', 'Current3', 'Power', 'Frequency', 'Reactive_Energy', 'Status']
-            cursor.execute("SELECT zlan_ip, node_name, category, source_type, machine_max_power,meter_no FROM Source_Info WHERE (category IN ('Electricity', 'Grid', 'Solar', 'Diesel_Generator', 'Gas_Generator')) AND source_type IN ('Source', 'Load', 'Meter_Bus_Bar', 'LB_Meter') AND connection_type = 'Zlan'")
+            cursor.execute("SELECT zlan_ip, node_name, category, source_type, machine_max_power,meter_no FROM Source_Info WHERE resource_type= 'Electricity' AND source_type IN ('Source', 'Load', 'Meter_Bus_Bar', 'LB_Meter') AND connection_type = 'Zlan'")
             rows = cursor.fetchall()
             results = []
 
@@ -1040,7 +1005,8 @@ try:
             return []
 
 
-    def processReadNodeForElectricity(cursor, current_timestamp, results, category_dict, source_type_dict, machine_max_power_dict, energy_store, previous_status, max_limit_count, source_data_list, dgr_data_list, dgr_data_15_list):
+    def processReadNodeForElectricity(cursor, current_timestamp, results, category_dict, source_type_dict, machine_max_power_dict, energy_store, max_limit_count, source_data_list, dgr_data_list, dgr_data_15_list, generators):
+        checkGeneratorStatus(results, generators)
         for data in results:
             node_name = data['Node_Name']
 
@@ -1048,11 +1014,9 @@ try:
             source_type = source_type_dict.get(node_name)
             machine_max_power = machine_max_power_dict.get(node_name)
 
-            # print(f"Received data: {data}")  # Process data as needed
+            readNode(cursor, current_timestamp, data, data['Node_Name'], category, source_type, machine_max_power, energy_store, max_limit_count, source_data_list, dgr_data_list, dgr_data_15_list)
 
-            readNode(cursor, current_timestamp, data, data['Node_Name'], category, source_type, machine_max_power, energy_store, previous_status, max_limit_count, source_data_list, dgr_data_list, dgr_data_15_list)
-
-    def bulkInsertForElectricity(cursor, source_data_list, dgr_data_list, dgr_data_15_list, DATABASE_HOST, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD):
+    def bulkInsertForElectricity(cursor, source_data_list, dgr_data_list, dgr_data_15_list):
         try:
             
             if source_data_list:
@@ -1075,16 +1039,18 @@ try:
                     VALUES (?, ?, ?, ?, ?, ?, ?)
                 ''', dgr_data_15_list)
                 dgr_data_15_list.clear()  # Clear the list after insertion
-        except pyodbc.Error as e:
-            log_message(f"Database error during bulk insert: {traceback.format_exc()} {source_data_list}")
-            conn = connect_to_database(DATABASE_HOST, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD)  # Attempt to reconnect
-            cursor = conn.cursor() if conn else None
 
-            source_data_list.clear()  # Clear the list after insertion
-            dgr_data_list.clear()  # Clear the list after insertion    
-            dgr_data_15_list.clear()  # Clear the list after insertion                                            
-        except Exception as e:
-            log_message(f"Unexpected error during bulk insert: {traceback.format_exc()}")
+        except pyodbc.Error as e:
+            log_message(f"Unexpected error during bulk insert for electricity: {traceback.format_exc()} {e}")
+            source_data_list.clear()
+            dgr_data_list.clear()     
+            dgr_data_15_list.clear()
+            raise
+        except Exception:
+            log_message(f"Unexpected error during bulk insert for electricity: {traceback.format_exc()}")
+            source_data_list.clear()
+            dgr_data_list.clear()     
+            dgr_data_15_list.clear()
 
  
 
@@ -1134,7 +1100,9 @@ try:
                     monthly_yearly_utils.insert_record_monthly(
                         cursor, energy_result, cost, runtime, energy_mod, cost_mod, current_date, node
                     )
-
+        except pyodbc.Error as e:
+            log_message(f"Database error in electricityMonthlyInsertion: {traceback.format_exc()}")
+            raise
         except Exception as e:
             log_message("Error in electricityMonthlyInsertion: " + traceback.format_exc())
 
@@ -1200,14 +1168,16 @@ try:
                         INSERT INTO Yearly_Total_Energy (date, node, energy, cost, powercut_in_min, count_powercuts, energy_mod, cost_mod, runtime)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, (last_day_of_month, node, energy, cost, powercut, count_powercut, energy_mod, cost_mod, runtime))
-
+        except pyodbc.Error as e:
+            log_message(f"Database error in electricity yearly insertion: {traceback.format_exc()}")
+            raise
         except Exception as e:
             log_message(f"Error in electricity yearly insertion: {traceback.format_exc()}")
 
 
 
 
-    def allLoadData(cursor, current_timestamp, DATABASE_HOST, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD):
+    def allLoadData(cursor, current_timestamp):
         try:
             cursor.execute("""
                 SELECT node_name
@@ -1266,10 +1236,9 @@ try:
 
         except pyodbc.Error:
             log_message(f"Error Processing Total Load Data: {traceback.format_exc()}")
-            conn = connect_to_database(DATABASE_HOST, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD)
-            cursor = conn.cursor() if conn else None
-        except Exception:
-            log_message(f"Unexpected error inserting Total Load data: {traceback.format_exc()}")
+            raise
+        except Exception as e:
+            log_message(f"Error Processing Total Load Data: {traceback.format_exc()} {e}")
 
 
     def checkAnyUpdate(cursor):
@@ -1286,7 +1255,8 @@ try:
             else:
                 return False
         except Exception as e:
-            log_message(f"Error in update: {e}")
+            log_message(f"Error in checkAnyUpdate: {e}")
+            raise
 
 
     def fetchLastData(cursor, node, not_connected_data_electricity):
@@ -1440,9 +1410,41 @@ try:
                 slave_info_zlan[zlan_ip][meter_no]= meter_model
             return slave_info_zlan
 
+        except pyodbc.Error as e:
+            log_message(f"DB error in slaveIpAndModelMap: {traceback.format_exc()} {e}")
+            raise
         except Exception as e:
-            log_message(f"Error in slaveInfoElectricity: {traceback.format_exc()}")
+            log_message(f"Error in slaveIpAndModelMap: {traceback.format_exc()} {e}")
             return []
+        
+    def fetchGenerators(cursor):
+        try:
+            cursor.execute("""
+                SELECT node_name 
+                FROM Source_Info 
+                WHERE category IN ('Gas_Generator', 'Diesel_Generator')
+            """)
+            rows = cursor.fetchall()
+
+            # Return as a set for fast lookups
+            generators = {row[0] for row in rows}
+            return generators
+        except pyodbc.Error as e:
+            log_message(f"DB error in fetchGenerators: {traceback.format_exc()} {e}")
+            raise
+        except Exception:
+            log_message(f"Error in fetchGenerators: {traceback.format_exc()}")
+            return set()
+    def checkGeneratorStatus(results, generators):
+        try:
+            global generator_is_running
+            generator_is_running = any(
+                data['Power'] > 0
+                for data in results
+                if data['Node_Name'] in generators
+            )
+        except Exception:
+            log_message(f"Error in checkGeneratorStatus: {traceback.format_exc()}")
         
 
 except Exception as e:

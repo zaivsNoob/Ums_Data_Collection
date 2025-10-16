@@ -51,7 +51,7 @@ def processReadNodeForSensor(current_timestamp, sensor_results, sensor_data_list
         readNode(current_timestamp, data, data['Node_Name'], sensor_data_list, sensor_dgr_data_list)
 
 
-def bulkInsertForSensor(cursor, sensor_data_list, sensor_dgr_data_list, DATABASE_HOST, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD):
+def bulkInsertForSensor(cursor, sensor_data_list, sensor_dgr_data_list):
     try:
         
         if sensor_data_list:
@@ -68,15 +68,12 @@ def bulkInsertForSensor(cursor, sensor_data_list, sensor_dgr_data_list, DATABASE
             ''', sensor_dgr_data_list)
             sensor_dgr_data_list.clear()  # Clear the list after insertion
 
-    except pyodbc.Error as e:
-        log_message(f"Database error during bulk insert: {traceback.format_exc()} {sensor_data_list}")
-        conn = connect_to_database(DATABASE_HOST, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD)  # Attempt to reconnect
-        cursor = conn.cursor() if conn else None
+    except Exception as e:
+        log_message(f"Database error during bulk insert: {traceback.format_exc()} {e}")
 
         sensor_data_list.clear()  # Clear the list after insertion
-        sensor_dgr_data_list.clear()  # Clear the list after insertion                                               
-    except Exception as e:
-        log_message(f"Unexpected error during bulk insert: {traceback.format_exc()}")
+        sensor_dgr_data_list.clear()  # Clear the list after insertion
+        raise                                               
 
 def slaveInfoSensor(cursor):
     try:

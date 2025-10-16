@@ -60,8 +60,11 @@ def getYesterdaySteamVolume(cursor, steam_volume_store):
                 'last_update': datetime.datetime.now(),
                 'yesterday_volume' : 0.0,
                 }
+    except pyodbc.Error as e:
+        log_message(f"Database error fetching yesterday's steam volume: {traceback.format_exc()} {e}")
+        raise
     except Exception as e:
-        log_message(f"Error fetching yesterday's steam volume: {traceback.format_exc()}")
+        log_message(f"Error fetching yesterday's steam volume: {traceback.format_exc()} {e}")
 
 def fetchDataForSteam(cursor, dataset):
     column_list= ['Node_Name', 'sensor_value', 'volume', 'sensor_cost', 'sensor_status']
@@ -154,7 +157,7 @@ def processReadNodeForSteam(cursor, current_timestamp, results, steam_source_dat
 
 
 
-def bulkInsertForSteam(cursor, steam_source_data_list, steam_dgr_data_list, steam_dgr_data_15_list, DATABASE_HOST, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD):
+def bulkInsertForSteam(cursor, steam_source_data_list, steam_dgr_data_list, steam_dgr_data_15_list):
     try:
         
         if steam_source_data_list:
@@ -178,16 +181,12 @@ def bulkInsertForSteam(cursor, steam_source_data_list, steam_dgr_data_list, stea
             ''', steam_dgr_data_15_list)
             steam_dgr_data_15_list.clear()  # Clear the list after insertion
 
-    except pyodbc.Error as e:
-        log_message(f"Database error during natural gas bulk insert: {traceback.format_exc()} {steam_source_data_list}")
-        conn = connect_to_database(DATABASE_HOST, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD)  # Attempt to reconnect
-        cursor = conn.cursor() if conn else None
-
+    except Exception as e:
+        log_message(f"Unexpected error during steam bulk insert: {traceback.format_exc()} {e}")
         steam_source_data_list.clear()  # Clear the list after insertion
         steam_dgr_data_list.clear()  # Clear the list after insertion    
-        steam_dgr_data_15_list.clear()  # Clear the list after insertion                                            
-    except Exception as e:
-        log_message(f"Unexpected error during natural gas bulk insert: {traceback.format_exc()}")
+        steam_dgr_data_15_list.clear()  # Clear the list after insertion  
+        raise                                          
 
 
 def steamMonthlyInsertion(cursor, current_timestamp):
@@ -233,7 +232,7 @@ def steamYearlyInsertion(cursor, current_timestamp):
         log_message(f"Error during yearly insertion for Steam: {traceback.format_exc()}")
 
 
-def allLoadData(cursor, current_timestamp, DATABASE_HOST, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD):
+def allLoadData(cursor, current_timestamp):
     try:
         # Step 1: Fetch steam-based load nodes
         cursor.execute("""
@@ -294,14 +293,13 @@ def allLoadData(cursor, current_timestamp, DATABASE_HOST, DATABASE_NAME, DATABAS
 
     except pyodbc.Error:
         log_message(f"Error Processing Natural Gas Total Load Data: {traceback.format_exc()}")
-        conn = connect_to_database(DATABASE_HOST, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD)
-        cursor = conn.cursor() if conn else None
+        raise
     except Exception:
         log_message(f"Unexpected error inserting Natural Gas Total Load data: {traceback.format_exc()}")
 
 
 
-def allSourceData(cursor, current_timestamp, DATABASE_HOST, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD):
+def allSourceData(cursor, current_timestamp):
     try:
         # Step 1: Get relevant source nodes
         cursor.execute("""
@@ -387,89 +385,14 @@ def allSourceData(cursor, current_timestamp, DATABASE_HOST, DATABASE_NAME, DATAB
 
     except pyodbc.Error:
         log_message(f"Error Processing Steam Total Source Data: {traceback.format_exc()}")
-        conn = connect_to_database(DATABASE_HOST, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD)
-        cursor = conn.cursor() if conn else None
+        raise
     except Exception:
         log_message(f"Unexpected error inserting Steam Total Source data: {traceback.format_exc()}")
 
 
-# def busbarData(cursor,current_timestamp, DATABASE_HOST, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD):
-#     try:
-#         global generator_is_running
-#         cursor.execute("SELECT node_name, source_type, connected_with FROM Source_Info WHERE Source_type ='Bus_Bar' AND resource_type= 'Water'")
-#         rows = cursor.fetchall()
-#         for row in rows:
-#             node_name, source_type, connected_with = row
-
-#             sensor_value = 0.0
-#             sensor_cost=0.0
-#             volume=0.0
-#             today_volume=0.0
-#             yesterday_volume=0.0
-#             connected_with = json.loads(connected_with) if connected_with else []
-            
-#             if source_type == 'Bus_Bar':
-#                 for item in connected_with:
-#                     try:
-#                         cursor.execute("SELECT node_name FROM Source_Info WHERE id=? AND Source_type='Source'", (item,))
-#                         source_row = cursor.fetchone()
-#                         if source_row is not None:
-#                             source = source_row[0]
-#                             cursor.execute("SELECT TOP 1 sensor_value, sensor_cost, volume, today_volume, yesterday_volume FROM Water WHERE node = ? ORDER BY timedate DESC", (source,))
-#                             data_row = cursor.fetchone()
-#                             if data_row is not None:
-#                                 sensor_value += data_row[0] if data_row[0] is not None else 0.0
-#                                 sensor_cost += data_row[1] if data_row[1] is not None else 0.0
-#                                 volume += data_row[2] if data_row[2] is not None else 0.0
-#                                 today_volume += data_row[3] if data_row[3] is not None else 0.0
-#                                 yesterday_volume += data_row[4] if data_row[4] is not None else 0.0 
-#                     except pyodbc.Error as e:
-#                         log_message(f"Database error processing connected source: {traceback.format_exc()}")
-#                         conn = connect_to_database(DATABASE_HOST, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD)  # Reconnect to the database
-#                         cursor = conn.cursor() if conn else None
-#                         continue
-#                     except Exception as e:
-#                         log_message(f"Error processing connected source: {traceback.format_exc()}")
-#                         continue
-
-#             # Insert into database
-#             try:
-                
-
-
-#                 cursor.execute('''
-#                     INSERT INTO Water (timedate, node, sensor_value, sensor_cost, yesterday_volume, today_volume, volume)
-#                     VALUES (?, ?, ?, ?, ?, ?, ?)
-#                 ''', (current_timestamp, node_name, sensor_value, sensor_cost, yesterday_volume, today_volume, volume))
-
-                
-#                 cursor.execute('''
-#                     INSERT INTO Water_DGR(timedate, node, sensor_value, sensor_cost, volume)
-#                     VALUES (?, ?, ?, ?, ?)
-#                 ''', (current_timestamp, node_name, sensor_value, sensor_cost, volume))
-
-#                 if current_timestamp.minute%15 == 0: 
-
-#                     cursor.execute('''
-#                         INSERT INTO Water_DGR_15(timedate, node, sensor_value, sensor_cost, volume)
-#                         VALUES (?, ?, ?, ?, ?)
-#                     ''', (current_timestamp, node_name, sensor_value, sensor_cost, volume))                      
-#                 # conn.commit()
-
-
-
-#             except pyodbc.Error as e:
-#                 log_message(f"Database error inserting water busbar data for {node_name}: {traceback.format_exc()}")
-#                 conn = connect_to_database()  # Attempt to reconnect
-#                 cursor = conn.cursor() if conn else None
-#             except Exception as e:
-#                 log_message(f"Unexpected error inserting water busbar data: {traceback.format_exc()}")
-
-#     except Exception as e:
-#         log_message(f"Error processing busbar data: {traceback.format_exc()}")
 
 busbars = {}
-def busbarDataForSteam(cursor, current_timestamp, DATABASE_HOST, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD, steam_data_list):
+def busbarDataForSteam(cursor, current_timestamp, steam_data_list):
     try:
         busbar_data_list = []
         
@@ -501,7 +424,6 @@ def busbarDataForSteam(cursor, current_timestamp, DATABASE_HOST, DATABASE_NAME, 
             }
             dataset[node_name] = None
 
-        # print(dataset)
 
         # Step 2: Map source_info.id to (node_name, source_type)
         cursor.execute("SELECT id, node_name FROM Source_Info WHERE resource_type = 'Steam'")
@@ -515,35 +437,30 @@ def busbarDataForSteam(cursor, current_timestamp, DATABASE_HOST, DATABASE_NAME, 
             busbar_data_list.append((current_timestamp, node_name, flow))
 
 
-        # log_message(dataset['Diesel Generator'])
         busbars.clear()
         steam_data_list.clear()
 
-        try:
-            # pf = monthlyPfcalculation(cursor, current_timestamp, node_name, aggregates['net_energy'], aggregates['reactive_energy'], aggregates['power'])
-            if busbar_data_list:
-                cursor.executemany("""
-                    INSERT INTO Natural_Gas (timedate, node, sensor_value)
-                    VALUES (?, ?, ?)
-                """, busbar_data_list)
+        # pf = monthlyPfcalculation(cursor, current_timestamp, node_name, aggregates['net_energy'], aggregates['reactive_energy'], aggregates['power'])
+        if busbar_data_list:
+            cursor.executemany("""
+                INSERT INTO Natural_Gas (timedate, node, sensor_value)
+                VALUES (?, ?, ?)
+            """, busbar_data_list)
 
-            # cursor.execute("""
-            #     INSERT INTO DGR_Data (timedate, node, power, cost, type, category)
-            #     VALUES (?, ?, ?, ?, ?, 'Electricity')
-            # """, (current_timestamp, node_name, aggregates['power'], aggregates['cost'], source_type))
+        # cursor.execute("""
+        #     INSERT INTO DGR_Data (timedate, node, power, cost, type, category)
+        #     VALUES (?, ?, ?, ?, ?, 'Electricity')
+        # """, (current_timestamp, node_name, aggregates['power'], aggregates['cost'], source_type))
 
-            # if current_timestamp.minute % 15 == 0:
-            #     cursor.execute("""
-            #         INSERT INTO DGR_Data_15 (timedate, node, power, cost, type, category)
-            #         VALUES (?, ?, ?, ?, ?, 'Electricity')
-            #     """, (current_timestamp, node_name, aggregates['power'], aggregates['cost'], source_type))
+        # if current_timestamp.minute % 15 == 0:
+        #     cursor.execute("""
+        #         INSERT INTO DGR_Data_15 (timedate, node, power, cost, type, category)
+        #         VALUES (?, ?, ?, ?, ?, 'Electricity')
+        #     """, (current_timestamp, node_name, aggregates['power'], aggregates['cost'], source_type))
 
-        except pyodbc.Error:
-            log_message(f"DB error inserting data for steam busbar data: {traceback.format_exc()}")
-            conn = connect_to_database(DATABASE_HOST, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD)
-            cursor = conn.cursor() if conn else None
-        except Exception:
-            log_message(f"Unexpected error inserting data: {traceback.format_exc()}")
+    except pyodbc.Error:
+        log_message(f"DB error inserting data for steam busbar data: {traceback.format_exc()}")
+        raise
 
     except Exception:
         log_message(f"Critical error in busbarDataForElectricity: {traceback.format_exc()}")
