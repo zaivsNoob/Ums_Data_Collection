@@ -13,6 +13,16 @@
 - Multiple unhandled database connection creation
 
 ---
+## [1.2.0] - 2025-10-18
+### Added
+- Dynamic generator status calculation
+
+### Changed
+- Done multiple code cleaining
+
+### Fixed
+- Multiple unhandled database connection creation
+---
 ## [1.1.0] - 2025-10-14
 ### Added
 - Sensor Configuration
