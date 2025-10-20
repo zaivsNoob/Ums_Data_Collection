@@ -1152,7 +1152,7 @@ try:
             """, (*all_nodes, current_month))
             energy_data = {row[0]: row[1:] for row in cursor.fetchall()}
 
-            for node in all_nodes:
+            for node in energy_data.keys():
                 energy, cost, energy_mod, cost_mod, runtime = energy_data.get(node, (0, 0, 0, 0, 0))
                 powercut, count_powercut = powercut_data.get(node, (0, 0))
 

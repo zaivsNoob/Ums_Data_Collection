@@ -3,11 +3,11 @@
 
 ## [Unreleased]
 
-### Added
+<!-- ### Added
 - Dynamic generator status calculation
 
 ### Changed
-- Done multiple code cleaining
+- Done multiple code cleaining -->
 
 ### Fixed
 - Multiple unhandled database connection creation
