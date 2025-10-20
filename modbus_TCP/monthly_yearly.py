@@ -30,7 +30,7 @@ DATABASE_USER = os.getenv('DATABASE_USER')
 DATABASE_PASSWORD =os.getenv('DATABASE_PASSWORD')
 websocket_url=os.getenv('WS_URL')
 
-log_file_path = os.getenv('LOG_FILE_PATH')
+log_file_path = os.getenv('MONTHLY_LOG_FILE_PATH')
 
 def log_message(message):
     with open(log_file_path, 'a') as log_file:
