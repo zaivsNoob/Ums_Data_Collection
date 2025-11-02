@@ -10,8 +10,20 @@
 - Done multiple code cleaining -->
 
 ### Fixed
-- Multiple unhandled database connection creation
+- Yearly table Source Category data insertion
+- Bus Bar calculation for electricity error while connected with BusCoupler
 
+## [Released]
+---
+## [1.2.2] - 2025-11-2
+### Fixed
+### Fixed
+- Yearly table Source Category data insertion
+- Bus Bar calculation for electricity error while connected with BusCoupler
+---
+## [1.2.1] - 2025-10-20
+### Fixed
+- Yearly table Source Category data insertion
 ---
 ## [1.2.0] - 2025-10-18
 ### Added

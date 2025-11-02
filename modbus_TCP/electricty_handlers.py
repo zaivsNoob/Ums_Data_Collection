@@ -231,7 +231,7 @@ try:
 
     def recursionFunction(node, source_type, id_to_node, dataset, connected_with, load_list):
         value=0
-        if dataset[node] is not None:
+        if dataset.get(node, None) is not None:
             return dataset[node]
         else:
             if source_type == 'Bus_Bar':
