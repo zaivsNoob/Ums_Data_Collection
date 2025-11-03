@@ -858,7 +858,8 @@ try:
                 else:
                     not_conn_elec.pop(node_name, None)
 
-                monthly_pf= monthlyPfcalculation(cursor, current_timestamp, node_name, temp["Net_Energy"], temp['Reactive_Energy'],temp['Power'])
+                # monthly_pf= monthlyPfcalculation(cursor, current_timestamp, node_name, temp["Net_Energy"], temp['Reactive_Energy'],temp['Power'])
+                monthly_pf=0
                 
         
                 if energy_store.get(node_name):
