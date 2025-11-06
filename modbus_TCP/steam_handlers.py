@@ -86,7 +86,7 @@ def fetchDataForSteam(cursor, dataset):
             data_for_node=dataset[zlan_ip][meter_no-1]
             for i in range(len(column_list)):
                 if column_list[i] not in ['Node_Name', 'sensor_cost', 'sensor_status']:
-                    temp[column_list[i]]=data_for_node[f'data_{i}']
+                    temp[column_list[i]]=data_for_node.get(f'data_{i}', 0)
                 elif column_list[i] == 'sensor_status':
                     temp[column_list[i]]= 0 if temp['sensor_value'] == 0 else 1
                 elif column_list[i] == 'sensor_cost':

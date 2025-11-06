@@ -9,14 +9,19 @@
 ### Changed
 - Done multiple code cleaining -->
 
-### Fixed
+<!-- ### Fixed
 - Yearly table Source Category data insertion
-- Bus Bar calculation for electricity error while connected with BusCoupler
+- Bus Bar calculation for electricity error while connected with BusCoupler -->
 
 ## [Released]
 ---
-## [1.2.2] - 2025-11-2
+## [1.3.0] - 2025-11-6
+### Changed
+- Water flow meter data profiling
 ### Fixed
+- Some minor errors fixed
+---
+## [1.2.2] - 2025-11-2
 ### Fixed
 - Yearly table Source Category data insertion
 - Bus Bar calculation for electricity error while connected with BusCoupler

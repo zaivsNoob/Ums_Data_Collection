@@ -25,14 +25,6 @@ def convertRegistersToDataM1M20_2(register1, register2, resolution):
     combined_value = int((hex(register1) + hex(register2)[2:]), 16)
     return round(combined_value * resolution,3)
 
-def convert_u16_to_32_float(registers, byteorder=Endian.Big, wordorder=Endian.Big):
-    decoder = BinaryPayloadDecoder.fromRegisters(registers, byteorder=byteorder, wordorder=wordorder)
-    return decoder.decode_32bit_float()
-
-def convert_u16_to_32_int(registers, byteorder=Endian.Big, wordorder=Endian.Big):
-    decoder = BinaryPayloadDecoder.fromRegisters(registers, byteorder=byteorder, wordorder=wordorder)
-    return decoder.decode_32bit_int()
-
 def convert_u16_to_int16(registers, byteorder=Endian.Big, wordorder=Endian.Big):
     decoder = BinaryPayloadDecoder.fromRegisters(registers, byteorder=byteorder, wordorder=wordorder)
     return decoder.decode_16bit_int()
@@ -40,6 +32,45 @@ def convert_u16_to_int16(registers, byteorder=Endian.Big, wordorder=Endian.Big):
 def convert_int16_to_64_float(registers, byteorder=Endian.Big, wordorder=Endian.Big):
     decoder = BinaryPayloadDecoder.fromRegisters(registers, byteorder=byteorder, wordorder=wordorder)
     return decoder.decode_64bit_float()
+
+def convert_u16_to_16_int(registers, byteorder=Endian.Big, wordorder=Endian.Big):
+    decoder = BinaryPayloadDecoder.fromRegisters(registers, byteorder=byteorder, wordorder=wordorder)
+    return decoder.decode_16bit_int()
+
+def convert_u16_to_16_uint(registers, byteorder=Endian.Big, wordorder=Endian.Big):
+    decoder = BinaryPayloadDecoder.fromRegisters(registers, byteorder=byteorder, wordorder=wordorder)
+    return decoder.decode_16bit_uint
+
+def convert_u16_to_16_float(registers, byteorder=Endian.Big, wordorder=Endian.Big):
+    decoder = BinaryPayloadDecoder.fromRegisters(registers, byteorder=byteorder, wordorder=wordorder)
+    return decoder.decode_16bit_float()
+
+def convert_u16_to_32_int(registers, byteorder=Endian.Big, wordorder=Endian.Big):
+    decoder = BinaryPayloadDecoder.fromRegisters(registers, byteorder=byteorder, wordorder=wordorder)
+    return decoder.decode_32bit_int()
+
+def convert_u16_to_32_uint(registers, byteorder=Endian.Big, wordorder=Endian.Big):
+    decoder = BinaryPayloadDecoder.fromRegisters(registers, byteorder=byteorder, wordorder=wordorder)
+    return decoder.decode_32bit_uint()
+
+def convert_u16_to_32_float(registers, byteorder=Endian.Big, wordorder=Endian.Big):
+    decoder = BinaryPayloadDecoder.fromRegisters(registers, byteorder=byteorder, wordorder=wordorder)
+    return decoder.decode_32bit_float()
+
+def convert_u16_to_64_int(registers, byteorder=Endian.Big, wordorder=Endian.Big):
+    decoder = BinaryPayloadDecoder.fromRegisters(registers, byteorder=byteorder, wordorder=wordorder)
+    return decoder.decode_64bit_int()
+
+def convert_u16_to_64_uint(registers, byteorder=Endian.Big, wordorder=Endian.Big):
+    decoder = BinaryPayloadDecoder.fromRegisters(registers, byteorder=byteorder, wordorder=wordorder)
+    return decoder.decode_64bit_uint()
+
+def convert_u16_to_64_float(registers, byteorder=Endian.Big, wordorder=Endian.Big):
+    decoder = BinaryPayloadDecoder.fromRegisters(registers, byteorder=byteorder, wordorder=wordorder)
+    return decoder.decode_64bit_float()
+
+
+
 
 
 
@@ -125,7 +156,48 @@ def processMFM384And7kt(registers, offset):
         return data_entry
     except Exception as e:
         log_message(f"Error processing MFM-384 registers: {traceback.format_exc()}")
-        return {}   
+        return {}
+       
+def processFlowMeter(registers, offset, flow_convert_type, volume_convert_type):
+    try:
+        flow_converter, volume_converter= waterSteamDataConverter(flow_convert_type, volume_convert_type)
+        if not flow_converter or not volume_converter:
+            log_message(f"Invalid converter type: flow_convert_type={flow_convert_type}, volume_convert_type={volume_convert_type}")
+            return {}
+        data_entry = {}
+        for j in range(2):
+            start_index = j * 2 + offset * 40
+            end_index = start_index + 2
+            if j==0:
+                data_entry[f"data_{j + 1}"] = flow_converter(registers[start_index:end_index])
+            else:
+                data_entry[f"data_{j + 1}"] = volume_converter(registers[start_index:end_index])
+        
+        for i in range (3, 21):
+            data_entry[f'data_{i}']=0
+
+        return data_entry
+    except Exception as e:
+        log_message(f"Error processing Flow Meter registers: {traceback.format_exc()}")
+        return {}
+
+def waterSteamDataConverter(flow_convert_type, volume_convert_type):
+    try:
+        converter={
+        'uint16_be':convert_u16_to_16_uint,
+        'int16_be':convert_u16_to_16_int,
+        'float16_be':convert_u16_to_16_float,
+        'uint32_be':convert_u16_to_32_uint,
+        'int32_be':convert_u16_to_32_int,
+        'float32_be':convert_u16_to_32_float,
+        'uint64_be':convert_u16_to_64_uint,
+        'int64_be':convert_u16_to_64_int,
+        'float64_be':convert_u16_to_64_float,
+        }
+        return converter.get(flow_convert_type), converter.get(volume_convert_type)
+    except Exception as e:
+        log_message(f"Error in waterSteamDataConverter: {traceback.format_exc()}")
+        return {}     
 
 
 def processPLC(registers, offset):
@@ -160,4 +232,6 @@ def processaq_hum_temp(registers, offset):
             return data_entry
         except Exception as e:
             log_message(f"Error processing PAC3120 registers: {traceback.format_exc()}")
-            return {}     
+            return {}
+
+    

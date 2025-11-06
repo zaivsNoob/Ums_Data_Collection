@@ -9,7 +9,7 @@ import os
 
 from pymodbus.payload import BinaryPayloadDecoder
 from pymodbus.constants import Endian
-from device_profiles import processMFM384And7kt, processPAC3120, processPLC, processaq_hum_temp
+from device_profiles import processMFM384And7kt, processPAC3120, processPLC, processaq_hum_temp, processFlowMeter
 import traceback
 
 load_dotenv()
@@ -98,7 +98,7 @@ async def readModbusZLAN(client, data_fetch_config, slave_ip, slave_ip_model):
             'PAC3120':processPAC3120,
             'MFM-384':processMFM384And7kt,
             'PLC':processPLC,
-            'Flow Meter':processMFM384And7kt,
+            'Flow Meter':processFlowMeter,
             'aq_hum_temp':processaq_hum_temp,
         }
 
@@ -114,14 +114,22 @@ async def readModbusZLAN(client, data_fetch_config, slave_ip, slave_ip_model):
 
                 
                 for offset in range(config["meter_fetched"]):
-                    meter_model=slave_ip_model.get(slave_ip, {}).get(meter_no, None)
-                    if not meter_model:
+                    meter_model_dict=slave_ip_model.get(slave_ip, {}).get(meter_no, None)
+                    if not meter_model_dict:
                         data.append({})
                         meter_no+=1
                         continue
+                    meter_model=meter_model_dict.get('meter_model', None)
+                    flow_convert_type=meter_model_dict.get('flow_convert_type', None)
+                    volume_convert_type=meter_model_dict.get('volume_convert_type', None)
+                    # print(meter_model, flow_convert_type, volume_convert_type)
                     processor=model_processors.get(meter_model, None)
-                    if processor:
+
+                    if processor and meter_model != 'Flow Meter':
                         data_entry = processor(registers, offset)
+                        data.append(data_entry)
+                    elif processor and meter_model == 'Flow Meter':
+                        data_entry = processor(registers, offset, flow_convert_type, volume_convert_type)
                         data.append(data_entry)
                     else:
                         log_message(f"No processor defined for meter model: {meter_model}")

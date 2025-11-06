@@ -1,9 +1,5 @@
 import traceback
 from electricty_handlers import log_message, connect_to_database
-import pyodbc
-import monthly_yearly_utils 
-import datetime
-import calendar
 
 
 def fetchDataForSensor(cursor, dataset):
@@ -27,7 +23,7 @@ def fetchDataForSensor(cursor, dataset):
                 data_for_node=dataset[zlan_ip][meter_no-1]
                 for i in range(len(column_list)):
                     if column_list[i] != 'Node_Name':
-                        temp[column_list[i]]=data_for_node[f'data_{i}']
+                        temp[column_list[i]]=data_for_node.get(f'data_{i}', 0)
             results.append(temp)
         
         return results

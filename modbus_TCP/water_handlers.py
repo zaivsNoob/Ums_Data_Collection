@@ -47,13 +47,12 @@ def fetchDataForWater(cursor, dataset):
             data_for_node=dataset[zlan_ip][meter_no-1]
             for i in range(len(column_list)):
                 if column_list[i] not in ['Node_Name', 'sensor_cost', 'sensor_status']:
-                    temp[column_list[i]]=data_for_node[f'data_{i}']
+                    temp[column_list[i]]=data_for_node.get(f'data_{i}', 0.0)
                 elif column_list[i] == 'sensor_status':
                     temp[column_list[i]]= 0 if temp['sensor_value'] == 0 else 1
                 elif column_list[i] == 'sensor_cost':
                     temp[column_list[i]]= 0
             temp['color']=color
-
 
         # Add meter_no and node_name to meter_dict
         meter_dict[meter_no] = node_name
@@ -66,31 +65,25 @@ def readNode(cursor, current_timestamp, temp, node_name, water_source_data_list,
 
     try:
             global not_conn_water
-
-            if node_name == 'Denim':
-                volume, flow, today_volume, yesterday_volume, color, cost, status= manualDenimData(cursor, water_volume_store, meter_data)
-            elif node_name == 'Textile Use':
-               volume, flow, today_volume, yesterday_volume, color, cost, status= manualTextileUseData(cursor, water_volume_store, meter_data)
+            if temp['volume']<=0:
+                temp['volume']= not_conn_water.get(node_name, None)
+                if temp['volume'] is None:
+                    temp['volume'] = fetchLastData(cursor, node_name, not_conn_water)
             else:
-                if temp['volume']<=0:
-                    temp['volume']= not_conn_water.get(node_name, None)
-                    if temp['volume'] is None:
-                        temp['volume'] = fetchLastData(cursor, node_name, not_conn_water)
-                else:
-                    not_conn_water.pop(node_name, None)
+                not_conn_water.pop(node_name, None)
 
-                if water_volume_store.get(node_name):
-                    yesterday_volume = water_volume_store[node_name]['yesterday_volume']
-                else:
-                    water_volume_store[node_name] = {'yesterday_volume': 0}
-                    yesterday_volume = 0
-                color= temp.get('color', 'blue')
-                today_volume= temp['volume']- water_volume_store[node_name]['yesterday_volume']
-                cost= temp.get('sensor_cost', 0.0)
-                status= temp.get('sensor_status', 0)
-                volume = temp['volume']
-                flow = temp['sensor_value']
-            # water_volume_store[node_name]['today_energy'] = today_volume
+            if water_volume_store.get(node_name):
+                yesterday_volume = water_volume_store[node_name]['yesterday_volume']
+            else:
+                water_volume_store[node_name] = {'yesterday_volume': 0}
+                yesterday_volume = 0
+            color= temp.get('color', 'blue')
+            today_volume= temp['volume']- water_volume_store[node_name]['yesterday_volume']
+            cost= temp.get('sensor_cost', 0.0)
+            status= temp.get('sensor_status', 0)
+            volume = temp['volume']
+            flow = temp['sensor_value']
+        # water_volume_store[node_name]['today_energy'] = today_volume
             
 
             water_source_data_list.append((current_timestamp, temp['Node_Name'], flow, volume, cost, status, yesterday_volume, today_volume, color))
@@ -371,17 +364,7 @@ def processReadNodeForWater(cursor, current_timestamp, results, water_source_dat
     meter_data = {item['Node_Name']: item for item in results}
 
     for data in results:
-        # if data['Node_Name'] == 'Denim':
-        #     manualDenimAndSoftTankData(cursor, current_timestamp, data, water_source_data_list, water_dgr_data_list, water_dgr_data_15_list, water_volume_store, meter_data)
-        # elif data['Node_Name'] == 'Textile Use':
-        #     manualTextileUseData(cursor, current_timestamp, data, water_source_data_list, water_dgr_data_list, water_dgr_data_15_list, water_volume_store, meter_data)
-        
-        # else:
-        #     readNode(cursor, current_timestamp, data, data['Node_Name'], water_source_data_list, water_dgr_data_list, water_dgr_data_15_list, water_volume_store, meter_data)
         readNode(cursor, current_timestamp, data, data['Node_Name'], water_source_data_list, water_dgr_data_list, water_dgr_data_15_list, water_volume_store, meter_data)
-    # Custom Busbar datas 
-    manualSoftTankData(cursor, current_timestamp, water_source_data_list, water_dgr_data_list, water_dgr_data_15_list, water_volume_store, meter_data)
-    manualRawWaterData(cursor, current_timestamp, water_source_data_list, water_dgr_data_list, water_dgr_data_15_list, water_volume_store, meter_data)
 
 
 
@@ -906,8 +889,6 @@ def busbarDataForWater(cursor, current_timestamp, water_data_list):
         dataset = {item[1]: item[2] for item in water_data_list}
         for row in cursor.fetchall():
             id, node_name, source_type, connected_with, lines_json = row
-            if node_name in ['Raw Water Tank', 'Soft Water Tank']:
-                continue
             try:
                 lines = json.loads(lines_json)
             except json.JSONDecodeError:
@@ -924,7 +905,6 @@ def busbarDataForWater(cursor, current_timestamp, water_data_list):
             }
             dataset[node_name] = None
 
-        # print(dataset)
 
         # Step 2: Map source_info.id to (node_name, source_type)
         cursor.execute("SELECT id, node_name FROM Source_Info WHERE resource_type = 'Water'")

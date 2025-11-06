@@ -958,7 +958,7 @@ try:
                     data_for_node=dataset[zlan_ip][meter_no-1]
                     for i in range(len(column_list)):
                         if column_list[i] != 'Node_Name' and column_list[i] != 'Status':
-                            temp[column_list[i]]=data_for_node[f'data_{i}']
+                            temp[column_list[i]]=data_for_node.get(f'data_{i}', 0)
                         elif column_list[i] == 'Status':
                             temp[column_list[i]]= 0 if temp['Power'] == 0 else 1
                 # Populate the dictionaries
@@ -1401,14 +1401,14 @@ try:
     #         return []
     def slaveIpAndModelMap(cursor):
         try:
-            cursor.execute("SELECT zlan_ip, meter_no, meter_model FROM Source_Info WHERE connection_type = 'Zlan'")
+            cursor.execute("SELECT zlan_ip, meter_no, meter_model, water_flow_convert_type, water_volume_convert_type FROM Source_Info WHERE connection_type = 'Zlan'")
             rows = cursor.fetchall()
             slave_info_zlan={}
             for row in rows:
-                zlan_ip, meter_no, meter_model = row
+                zlan_ip, meter_no, meter_model, flow_convert_type, volume_convert_type = row
                 if zlan_ip not in slave_info_zlan:
                     slave_info_zlan[zlan_ip]={}
-                slave_info_zlan[zlan_ip][meter_no]= meter_model
+                slave_info_zlan[zlan_ip][meter_no]= {'meter_model':meter_model, 'flow_convert_type': flow_convert_type, 'volume_convert_type': volume_convert_type}
             return slave_info_zlan
 
         except pyodbc.Error as e:
