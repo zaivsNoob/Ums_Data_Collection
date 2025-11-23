@@ -9,7 +9,7 @@ import os
 
 from pymodbus.payload import BinaryPayloadDecoder
 from pymodbus.constants import Endian
-from device_profiles import processMFM384And7kt, processPAC3120, processPLC, processaq_hum_temp, processFlowMeter
+from device_profiles import process32FloatCommon, processPAC3120, processPLC, processaq_hum_temp, processFlowMeter
 import traceback
 
 load_dotenv()
@@ -94,9 +94,10 @@ async def readModbusZLAN(client, data_fetch_config, slave_ip, slave_ip_model):
     data = []
     try:
         model_processors={
-            '7KT0310':processMFM384And7kt,
+            '7KT0310':process32FloatCommon,
             'PAC3120':processPAC3120,
-            'MFM-384':processMFM384And7kt,
+            'MFM-384':process32FloatCommon,
+            'Schneider PM5300':process32FloatCommon,
             'PLC':processPLC,
             'Flow Meter':processFlowMeter,
             'aq_hum_temp':processaq_hum_temp,

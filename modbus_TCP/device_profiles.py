@@ -138,7 +138,7 @@ def processPAC3120(registers, offset):
         log_message(f"Error processing PAC3120 registers: {traceback.format_exc()}")
         return {}
 
-def processMFM384And7kt(registers, offset):
+def process32FloatCommon(registers, offset):
     try:
         data_entry = {}
 

@@ -15,6 +15,10 @@
 
 ## [Released]
 ---
+## [1.4.0] - 2025-11-24
+### Added
+- Scider PM5300 profiling
+---
 ## [1.3.0] - 2025-11-6
 ### Changed
 - Water flow meter data profiling
